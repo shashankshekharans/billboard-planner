@@ -50,7 +50,7 @@ a { color: var(--sign); font-weight: 600; }
 .sign-head p { margin: 0; font: 500 clamp(17px, 2vw, 22px)/1.2 var(--font-display); opacity: .92; }
 .lanes { display: grid; grid-template-columns: repeat(3, 1fr); }
 .lane {
-  display: grid; grid-template-columns: auto 1fr; align-items: start; gap: 4px 14px; text-align: left;
+  display: grid; grid-template-columns: auto 1fr; align-items: start; align-content: start; gap: 4px 14px; text-align: left;
   background: transparent; border: 0; color: #fff; padding: 20px 24px 24px; cursor: pointer; border-radius: 0;
 }
 .lane + .lane { border-left: 3px solid #fff; }
