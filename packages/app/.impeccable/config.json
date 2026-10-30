@@ -1,0 +1,17 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "border-accent-on-rounded",
+        "value": "*",
+        "files": [
+          "src/styles.css"
+        ],
+        "createdAt": "2026-10-30T10:14:25.114Z",
+        "reason": "Claude triage: L76 is the 3px white divider between stacked gantry-sign lanes on mobile; .lane has border-radius 0, the divider is the sign's intended inner rule"
+      }
+    ]
+  }
+}
