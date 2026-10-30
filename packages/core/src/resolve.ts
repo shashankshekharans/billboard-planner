@@ -81,6 +81,8 @@ export function resolvePlan(input: unknown): { plan: PlanData; warnings: string[
     if (center) rings = { center, radiiKm: p.rings.radii_km, visible: p.rings.visible };
   }
 
+  const cities = p.cities.map((c, i) => ({ name: c.name, ...position(c, ["plan", "cities", i]) }));
+
   const groupIds = new Set(p.groups.map(g => g.id));
   const siteData: SiteData[] = sites.map((s, i) => {
     if (!groupIds.has(s.group)) issues.push(`${where(["sites", i, "group"], input)}: there is no group with id "${s.group}" (groups: ${[...groupIds].join(", ")})`);
@@ -108,7 +110,7 @@ export function resolvePlan(input: unknown): { plan: PlanData; warnings: string[
       currency: p.currency, locale: p.locale, theme: p.theme,
       brand: { primary: p.brand.primary, ...(p.brand.accent && { accent: p.brand.accent }) },
       map: { defaultView: p.map.default_view, providers: { satellite: tile(p.map.providers.satellite), road: tile(p.map.providers.road) } },
-      bases, ...(rings && { rings }),
+      bases, ...(rings && { rings }), ...(cities.length && { cities }),
       groups: p.groups.map(g => ({ id: g.id, name: g.name, color: g.color, ...(g.soft && { soft: g.soft }) })),
       notes: p.notes,
       sites: siteData

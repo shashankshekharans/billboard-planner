@@ -32,6 +32,9 @@ plan:
     center: { lat: 28.4595, lng: 77.0266, label: Gurgaon }
     radii_km: [20, 50]
     visible: true
+  cities:                            # blue city markers with name labels
+    - { name: Gurgaon, coords: "28.4595, 77.0266" }
+    - { name: Manesar, coords: "28.3540, 76.9395" }
   groups:
     - { id: hwy, name: Delhi Jaipur Highway, color: "#0f6b3e", soft: "#e3f0e8" }
     - { id: binalo, name: Binalo – Near Stella Showroom, color: "#c27a06", soft: "#fbf0dc" }

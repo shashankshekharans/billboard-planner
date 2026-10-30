@@ -136,6 +136,7 @@ legend { font: 700 19px/1.2 var(--font-display); padding: 0; margin-bottom: 4px;
 .image-field img { height: 40px; max-width: 160px; object-fit: contain; background: repeating-conic-gradient(#eee 0 25%, #fff 0 50%) 0 0 / 12px 12px; border: 1px solid var(--line); border-radius: 4px; padding: 2px; }
 
 .group-row { display: grid; grid-template-columns: auto 1fr auto; gap: 8px; align-items: center; }
+.city-row { display: grid; gap: 8px; padding-bottom: 10px; border-bottom: 1px solid var(--line); }
 
 /* Problems */
 .problems { display: grid; gap: 6px; }

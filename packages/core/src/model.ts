@@ -43,6 +43,9 @@ export interface RingsData {
   visible: boolean;
 }
 
+/** A town or city shown as a named blue marker (orientation only; not a site or base). */
+export interface CityData { name: string; lat: number; lng: number }
+
 export interface PlanData {
   title: string;
   subtitle: string;
@@ -54,6 +57,7 @@ export interface PlanData {
   map: { defaultView: "satellite" | "road"; providers: { satellite: TileProvider; road: TileProvider } };
   bases: BaseData[];
   rings?: RingsData;
+  cities?: CityData[];
   groups: GroupData[];
   notes: string[];
   sites: SiteData[];

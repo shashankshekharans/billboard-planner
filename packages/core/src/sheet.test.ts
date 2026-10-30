@@ -127,3 +127,15 @@ describe("sheetToPlan: other column shapes", () => {
     expect(warnings).toContain("Columns not used: Vendor, Traffic.");
   });
 });
+
+describe("sheetToPlan: City setting", () => {
+  it("reads City rows as Name: coordinates", () => {
+    const { file, warnings } = sheetToPlan({ sites: VENDOR_ROWS, settings: [["City", "Gurgaon: 28.4595, 77.0266"], ["City", "Manesar = Lat 28.3540, Long 76.9395"], ["City", "28.1, 76.2"]] });
+    expect(file.plan.cities).toEqual([{ name: "Gurgaon", coords: "28.4595, 77.0266" }, { name: "Manesar", coords: "Lat 28.3540, Long 76.9395" }]);
+    expect(warnings.some(w => w.startsWith('City "28.1, 76.2" ignored'))).toBe(true);
+  });
+  it("accepts several cities in one cell, separated by ;", () => {
+    const { file } = sheetToPlan({ sites: VENDOR_ROWS, settings: [["Cities", "Gurgaon: 28.4595, 77.0266; Manesar: 28.3540, 76.9395"]] });
+    expect(file.plan.cities).toEqual([{ name: "Gurgaon", coords: "28.4595, 77.0266" }, { name: "Manesar", coords: "28.3540, 76.9395" }]);
+  });
+});

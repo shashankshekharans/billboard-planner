@@ -143,6 +143,21 @@ td a:hover { text-decoration: underline; }
   .map-shell { height: 60vh; min-height: 360px; }
   .legend { bottom: 22px; font-size: 12px; }
 }
+[hidden] { display: none !important; }
+/* City markers: blue dot with a name label (orientation only) */
+.city { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+.city i { width: 16px; height: 16px; border-radius: 50%; background: #1d4ed8; border: 3px solid #fff; box-shadow: 0 0 0 2px #1d4ed8, 0 2px 6px rgba(0,0,0,.5); flex: none; }
+.city b { font: 700 14px/1 var(--font-display); letter-spacing: .06em; text-transform: uppercase; color: #142019; background: #fff; padding: 4px 8px; border-radius: 4px; box-shadow: 0 2px 6px rgba(0,0,0,.4); }
+.legend .city-key { width: 12px; height: 12px; border-radius: 50%; background: #1d4ed8; border: 2px solid #fff; box-shadow: 0 0 0 1px #1d4ed8; }
+/* Full-size photo viewer */
+.card-photo img { cursor: zoom-in; }
+.lightbox { position: fixed; inset: 0; z-index: 5000; background: rgba(8,12,10,.92); display: grid; place-items: center; padding: max(56px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(24px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); }
+.lightbox img { max-width: 100%; max-height: calc(100vh - 110px); object-fit: contain; border-radius: 6px; box-shadow: 0 10px 40px rgba(0,0,0,.6); }
+.lb-close { position: fixed; top: calc(14px + env(safe-area-inset-top, 0px)); right: calc(16px + env(safe-area-inset-right, 0px)); width: 44px; height: 44px; border-radius: 50%; border: 0; background: #fff; color: #142019; font-size: 26px; line-height: 1; cursor: pointer; box-shadow: 0 2px 10px rgba(0,0,0,.4); }
+.lb-nav { position: fixed; top: 50%; transform: translateY(-50%); width: 48px; height: 48px; border-radius: 50%; border: 0; background: rgba(255,255,255,.9); color: #142019; font-size: 26px; cursor: pointer; }
+.lb-nav.prev { left: calc(16px + env(safe-area-inset-left, 0px)); } .lb-nav.next { right: calc(16px + env(safe-area-inset-right, 0px)); }
+.lb-cap { position: fixed; left: 50%; bottom: calc(14px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); color: #fff; font-size: 14px; background: rgba(0,0,0,.5); padding: 5px 12px; border-radius: 14px; white-space: nowrap; max-width: calc(100% - 32px); overflow: hidden; text-overflow: ellipsis; }
+.lb-close:focus-visible, .lb-nav:focus-visible { outline: 3px solid var(--brand); outline-offset: 2px; }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 </style>
 <style id="group-styles"></style>
@@ -218,6 +233,7 @@ const SITES = (PLAN.sites || []).map(s => ({ qty: 1, days: 30, ...s, photos: s.p
 const BASES = PLAN.bases || [];
 const BASE = BASES.find(b => b.distanceFrom) || null;       // distances are measured from this base
 const BASE_LABEL = BASE ? (BASE.label || "base") : "";
+const CITIES = PLAN.cities || [];                          // named city markers, for orientation
 const RINGS = PLAN.rings && PLAN.rings.center && (PLAN.rings.radiiKm || []).length ? PLAN.rings : null;
 const DAYS = SITES.length && SITES.every(s => s.days === SITES[0].days) ? SITES[0].days : null;
 const TOTAL_LABEL = DAYS ? `Total, ${DAYS} days` : "Total";
@@ -262,6 +278,7 @@ const ringPlace = RINGS ? (RINGS.center.label || "centre") : "";
 document.getElementById("legend").innerHTML =
   GROUPS.map(g => `<span><i class="swatch ${gcls(g.id)}"></i>${esc(g.name)}</span>`).join("") +
   BASES.map(b => `<span><i class="wh-key"></i>${esc(b.legendLabel || b.name)}</span>`).join("") +
+  (CITIES.length ? `<span><i class="city-key"></i>City</span>` : "") +
   (RINGS ? `<label for="rings"><input type="checkbox" id="rings"${RINGS.visible === false ? "" : " checked"}> ${esc(listJoin(RINGS.radiiKm.map(km => km + " km")))} from ${esc(ringPlace)}</label>` : "");
 
 /* Map */
@@ -292,7 +309,7 @@ setView(!(PLAN.map && PLAN.map.defaultView === "road"));
 bSat.onclick = () => setView(true);
 bMap.onclick = () => setView(false);
 
-const bounds = L.latLngBounds(SITES.map(s => [s.lat, s.lng]).concat(BASES.map(b => [b.lat, b.lng])));
+const bounds = L.latLngBounds(SITES.map(s => [s.lat, s.lng]).concat(BASES.map(b => [b.lat, b.lng]), CITIES.map(c => [c.lat, c.lng])));
 
 if (RINGS) {
   const c0 = RINGS.center;
@@ -304,6 +321,11 @@ if (RINGS) {
   if (RINGS.visible !== false) rings.addTo(map);
   document.getElementById("rings").onchange = e => e.target.checked ? rings.addTo(map) : map.removeLayer(rings);
 }
+
+CITIES.forEach(c => L.marker([c.lat, c.lng], {
+  icon: L.divIcon({ className: "", html: `<div class="city"><i></i><b>${esc(c.name)}</b></div>`, iconSize: [120, 24], iconAnchor: [8, 12] }),
+  zIndexOffset: 500, keyboard: false, title: c.name
+}).addTo(map));
 
 BASES.forEach(b => {
   const chip = b.markerLogo
@@ -501,6 +523,36 @@ rowsEl.querySelectorAll("tr.site").forEach(r => {
     if (e.key === "ArrowUp") { e.preventDefault(); setH(shell.offsetHeight - 40); }
   });
 })();
+/* Photo lightbox: click the card photo to see it full size */
+const lb = document.createElement("div");
+lb.className = "lightbox"; lb.hidden = true; lb.setAttribute("role", "dialog"); lb.setAttribute("aria-modal", "true"); lb.setAttribute("aria-label", "Enlarged photo");
+lb.innerHTML = `<img alt=""><button type="button" class="lb-close" aria-label="Close enlarged photo">×</button><button type="button" class="lb-nav prev" aria-label="Previous photo">‹</button><button type="button" class="lb-nav next" aria-label="Next photo">›</button><div class="lb-cap"></div>`;
+document.body.appendChild(lb);
+let lbSite = null, lbI = 0, lbReturn = null;
+function lbShow() {
+  const n = lbSite.photos.length; lbI = ((lbI % n) + n) % n;
+  lb.querySelector("img").src = lbSite.photos[lbI];
+  lb.querySelector("img").alt = "Billboard " + lbSite.location;
+  lb.querySelectorAll(".lb-nav").forEach(b => b.hidden = n < 2);
+  lb.querySelector(".lb-cap").textContent = lbSite.location + (n > 1 ? `  ·  ${lbI + 1} / ${n}` : "");
+}
+function openLightbox(site, i) { lbReturn = document.activeElement; lbSite = site; lbI = i; lbShow(); lb.hidden = false; document.body.style.overflow = "hidden"; lb.querySelector(".lb-close").focus(); }
+function closeLightbox() { lb.hidden = true; document.body.style.overflow = ""; if (lbReturn && lbReturn.focus) lbReturn.focus(); }
+lb.querySelector(".lb-close").onclick = closeLightbox;
+lb.querySelector(".lb-nav.prev").onclick = () => { lbI--; lbShow(); };
+lb.querySelector(".lb-nav.next").onclick = () => { lbI++; lbShow(); };
+lb.addEventListener("click", e => { if (e.target === lb) closeLightbox(); });
+document.addEventListener("keydown", e => {
+  if (lb.hidden) return;
+  if (e.key === "Escape") closeLightbox();
+  if (e.key === "ArrowLeft" && lbSite.photos.length > 1) { lbI--; lbShow(); }
+  if (e.key === "ArrowRight" && lbSite.photos.length > 1) { lbI++; lbShow(); }
+});
+cardEl.addEventListener("click", ev => {
+  const im = ev.target.closest(".card-photo img"); if (!im || !openN) return;
+  const s = SITES[openN - 1]; if (!s.photos.length) return;
+  openLightbox(s, +cardEl.querySelector(".card-photo").dataset.i || 0);
+});
 </script>
 </body>
 </html>

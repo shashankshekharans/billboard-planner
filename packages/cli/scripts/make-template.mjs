@@ -29,6 +29,7 @@ const PLAN = [
   ["Ring label", "", "Name of the ring centre, e.g. Gurgaon (\"20 km from Gurgaon\")"],
   ["Ring radii (km)", "", "e.g. 20, 50"],
   ["Show rings", "Yes", "Yes or No: are the rings on when the page opens"],
+  ["City", "", "A blue city marker with its name, written as Name: coordinates, e.g. Manesar: 28.3540, 76.9395. Add more City rows for more cities"],
   ["Note", "", "A line under the table. Add more Note rows for more lines"],
   ["Note", "", ""]
 ];

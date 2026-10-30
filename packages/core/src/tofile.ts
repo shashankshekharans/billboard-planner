@@ -20,6 +20,7 @@ export function planToFile(d: PlanData): PlanFile {
         coords: coords(b), ...(b.markerLogo && { marker_logo: b.markerLogo }), distance_from: !!b.distanceFrom
       })),
       ...(d.rings && { rings: { center: { coords: coords(d.rings.center), label: d.rings.center.label }, radii_km: d.rings.radiiKm, visible: d.rings.visible } }),
+      ...(d.cities?.length && { cities: d.cities.map(c => ({ name: c.name, coords: coords(c) })) }),
       groups: d.groups.map(g => ({ id: g.id, name: g.name, color: g.color, ...(g.soft && { soft: g.soft }) })),
       notes: d.notes
     },

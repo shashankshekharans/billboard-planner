@@ -157,6 +157,7 @@ function settingsToPlan(rows: unknown[][], warnings: string[]): Record<string, u
   const rings: Record<string, unknown> = {};
   const center: Record<string, unknown> = {};
   const notes: string[] = [];
+  const cities: { name: string; coords: string }[] = [];
   const yes = (v: string) => /^(y|yes|true|1|show|on)$/i.test(v);
   for (const [k, v] of rows) {
     const name = cellText(k), value = cellText(v);
@@ -185,6 +186,15 @@ function settingsToPlan(rows: unknown[][], warnings: string[]): Record<string, u
         rings.radii_km = value.split(/[,;\s]+/).filter(Boolean).map(Number);
         break;
       case "showrings": rings.visible = yes(value); break;
+      case "city": case "cities": case "town": case "citymarker": {
+        // "Manesar: 28.3540, 76.9395". Several cities: one row each, or separated by ;
+        for (const part of value.split(/\s*;\s*(?=[^\d\s-])/)) {
+          const m = part.match(/^([^:\d][^:]*?)\s*[:=]\s*(.+)$/);
+          if (m) cities.push({ name: m[1]!.trim(), coords: m[2]!.trim() });
+          else warnings.push(`City "${part}" ignored: write it as Name: coordinates, e.g. Manesar: 28.3540, 76.9395.`);
+        }
+        break;
+      }
       case "note": case "notes": notes.push(...value.split(/\n+/).map(t => t.trim()).filter(Boolean)); break;
       default: warnings.push(`Unknown setting "${name}" ignored.`);
     }
@@ -195,5 +205,6 @@ function settingsToPlan(rows: unknown[][], warnings: string[]): Record<string, u
     plan.rings = { center, radii_km: rings.radii_km ?? [], visible: rings.visible ?? true };
   }
   if (notes.length) plan.notes = notes;
+  if (cities.length) plan.cities = cities;
   return plan;
 }

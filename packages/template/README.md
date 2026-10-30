@@ -24,6 +24,7 @@ This is the resolved data the page renders, not the user-facing `plan.yaml`: coo
 | `map.providers.satellite` / `.road` | `esri-imagery`, `esri-street`, or a custom `{ url, attribution, maxZoom }`. |
 | `bases[]` | `{ id, name, lat, lng, markerLogo?, label?, legendLabel?, distanceFrom? }`. The first base with `distanceFrom: true` drives the distance strip and column; `label` is the short word used there ("warehouse"). Without one, the distance column is left out. |
 | `rings` | `{ center: { lat, lng, label }, radiiKm: [20, 50], visible }`, optional. |
+| `cities[]` | `{ name, lat, lng }`, optional: blue city markers with a name label, a "City" legend entry, and included in "Show all sites". |
 | `groups[]` | `{ id, name, color, soft? }`. Table order follows this list. `soft` is the group heading tint (computed from `color` if missing). |
 | `notes[]` | Lines under the table. |
 | `sites[]` | See below. Pins are numbered in this order. |

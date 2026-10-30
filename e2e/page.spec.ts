@@ -101,3 +101,54 @@ test("satellite / map toggle, rings checkbox and Show all sites", async ({ page 
   await page.getByRole("button", { name: "Show all sites" }).click();
   await expect.poll(() => leaflet<number>(page, "map.getZoom()")).toBeLessThan(13);
 });
+
+test("city markers for Gurgaon and Manesar, with a legend entry", async ({ page }) => {
+  await expect(page.locator(".city b")).toHaveText(["Gurgaon", "Manesar"]);
+  await expect(page.locator(".legend")).toContainText("City");
+});
+
+test("clicking the card photo opens it full size; arrows, Escape and the backdrop work", async ({ page }) => {
+  await page.locator("#pin-8").hover();
+  const card = page.locator("#card");
+  await card.hover();
+  await card.locator(".card-photo img").click();
+  const lb = page.locator(".lightbox");
+  await expect(lb).toBeVisible();
+  await expect(lb.locator(".lb-cap")).toHaveText(/Binalo – Near Stella Showroom\s+·\s+1 \/ 3/);
+  await expect(lb.locator(".lb-close")).toBeFocused();
+  await page.keyboard.press("ArrowRight");
+  await expect(lb.locator(".lb-cap")).toContainText("2 / 3");
+  await lb.locator(".lb-nav.prev").click();
+  await lb.locator(".lb-nav.prev").click();
+  await expect(lb.locator(".lb-cap")).toContainText("3 / 3");
+  await page.keyboard.press("Escape");
+  await expect(lb).toBeHidden();
+
+  // A site with one photo has no arrows; clicking outside the photo closes it
+  await page.locator("#pin-1").hover();
+  await page.locator("#card").hover();
+  await page.locator("#card .card-photo img").click();
+  await expect(lb).toBeVisible();
+  await expect(lb.locator(".lb-nav.next")).toBeHidden();
+  await lb.click({ position: { x: 5, y: 300 } });
+  await expect(lb).toBeHidden();
+});
+
+test("the built page reads exactly like the hand-made reference", async ({ page, browser }) => {
+  const snapshot = (p: Page) => p.evaluate(() => {
+    const T = (s: string) => (document.querySelector(s) as HTMLElement | null)?.innerText.replace(/\s+/g, " ").trim() ?? "";
+    const show = (0, eval)("showCard") as (n: number) => void, hide = (0, eval)("hideCard") as () => void;
+    const cards: string[] = [];
+    for (let n = 1; n <= 8; n++) { show(n); cards.push(T("#card")); }
+    hide();
+    return {
+      header: T("header.top"), legend: T(".legend"), stats: T("#stats"), thead: T("thead"), rows: T("#rows"), foot: T("tfoot"), notes: T(".notes"),
+      cities: [...document.querySelectorAll(".city b")].map(e => e.textContent), rings: [...document.querySelectorAll(".ring-label")].map(e => e.textContent), cards
+    };
+  });
+  const ref = await browser.newPage();
+  await ref.goto(pathToFileURL(resolve("examples/aaj-swift-nh48/reference/billboard-plan-example.html")).href);
+  await expect(ref.locator(".pin")).toHaveCount(8);
+  expect(await snapshot(page)).toEqual(await snapshot(ref));
+  await ref.close();
+});

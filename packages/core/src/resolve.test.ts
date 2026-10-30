@@ -131,3 +131,16 @@ describe("planToFile", () => {
     expect(resolvePlan(planToFile(plan)).plan).toEqual(plan);
   });
 });
+
+describe("resolvePlan: cities", () => {
+  it("reads city markers in any coordinate format", () => {
+    const { plan } = resolvePlan(minimal({ cities: [{ name: "Gurgaon", coords: "28.4595, 77.0266" }, { name: "Manesar", lat: 28.354, lng: 76.9395 }] }));
+    expect(plan.cities).toEqual([{ name: "Gurgaon", lat: 28.4595, lng: 77.0266 }, { name: "Manesar", lat: 28.354, lng: 76.9395 }]);
+  });
+  it("leaves cities out when there are none", () => {
+    expect(resolvePlan(minimal()).plan.cities).toBeUndefined();
+  });
+  it("reports a city without a usable position", () => {
+    expect(problems(minimal({ cities: [{ name: "Nowhere", coords: "somewhere" }] })).join("\n")).toMatch(/plan\.cities\[0\]\.coords: No coordinates found/);
+  });
+});

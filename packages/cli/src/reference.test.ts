@@ -17,13 +17,14 @@ interface Ref {
   LOGO: string; WH_LOGO: string; SITES: RefSite[];
   WAREHOUSE: { lat: number; lng: number; name: string }; GURGAON: { lat: number; lng: number }; RINGS_KM: number[];
   GROUPS: Record<string, { name: string }>;
+  CITIES: { name: string; lat: number; lng: number }[];
 }
 
 // The reference keeps its data between these markers as plain `const` declarations.
 function referenceData(): Ref {
   const html = readFileSync(join(EXAMPLE, "reference/billboard-plan-example.html"), "utf8");
   const block = html.match(/\/\* ===== DATA — edit here ===== \*\/([\s\S]*?)\/\* ===== END DATA ===== \*\//)![1]!;
-  return runInNewContext(`${block}\n({ LOGO, WH_LOGO, SITES, WAREHOUSE, GURGAON, RINGS_KM, GROUPS })`) as Ref;
+  return runInNewContext(`${block}\n({ LOGO, WH_LOGO, SITES, WAREHOUSE, GURGAON, RINGS_KM, GROUPS, CITIES })`) as Ref;
 }
 
 const decode = (uri: string) => Buffer.from(uri.split(",")[1]!, "base64");
@@ -58,6 +59,10 @@ describe("AAJ Swift example built from plan.yaml matches the reference page", ()
     const wh = built.plan.bases[0]!;
     expect([wh.name, wh.lat, wh.lng]).toEqual([ref.WAREHOUSE.name, ref.WAREHOUSE.lat, ref.WAREHOUSE.lng]);
     expect(built.plan.rings).toMatchObject({ center: { lat: ref.GURGAON.lat, lng: ref.GURGAON.lng, label: "Gurgaon" }, radiiKm: ref.RINGS_KM });
+  });
+
+  it("has the same city markers", () => {
+    expect(built.plan.cities).toEqual(ref.CITIES);
   });
 
   it("gives the same distances from the warehouse (as shown, to 0.1 km)", () => {

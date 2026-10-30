@@ -80,6 +80,7 @@ export const planSchema = z.strictObject({
       radii_km: z.array(positive).min(1),
       visible: z.boolean().default(true)
     }).optional(),
+    cities: z.array(z.strictObject({ name: text.min(1), coords: coords.optional(), ...latLng }).refine(hasPosition, positionMessage)).default([]),
     groups: z.array(z.strictObject({ id, name: text.min(1), color: hex, soft: hex.optional() })).min(1, "Add at least one group"),
     notes: z.array(text).default([])
   }),

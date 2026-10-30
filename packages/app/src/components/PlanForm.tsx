@@ -124,6 +124,21 @@ export function PlanForm({ ws, onChange }: { ws: Workspace; onChange: (edit: (ws
       </fieldset>
 
       <fieldset>
+        <legend>Cities</legend>
+        <p class="hint">Blue markers with a name label, to help people find their way around the map.</p>
+        {(p.cities ?? []).map((c, i) => (
+          <div class="city-row" key={i}>
+            <Text label="City name" value={c.name} placeholder="Manesar"
+              onInput={v => setPlan(pl => ({ cities: (pl.cities ?? []).map((x, k) => k === i ? { ...x, name: v } : x) }))} />
+            <Coords label="Coordinates" value={c.coords}
+              onInput={v => setPlan(pl => ({ cities: (pl.cities ?? []).map((x, k) => k === i ? { ...x, coords: v } : x) }))} />
+            <div><button class="btn quiet danger" type="button" onClick={() => setPlan(pl => ({ cities: (pl.cities ?? []).filter((_, k) => k !== i) }))}>Remove city</button></div>
+          </div>
+        ))}
+        <div><button class="btn" type="button" onClick={() => setPlan(pl => ({ cities: [...(pl.cities ?? []), { name: "", coords: "" }] }))}>Add city</button></div>
+      </fieldset>
+
+      <fieldset>
         <legend>Notes under the table</legend>
         <label class="field"><span>One note per line</span>
           <textarea value={(p.notes ?? []).join("\n")} placeholder="Printing & mounting is a one-time charge."

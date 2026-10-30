@@ -21,6 +21,7 @@ export interface PlanDraft {
   map?: { default_view?: "satellite" | "road"; providers?: Record<string, unknown> };
   bases?: BaseDraft[];
   rings?: { center: { coords?: string; base?: string; label?: string }; radii_km: number[]; visible?: boolean };
+  cities?: { name: string; coords?: string }[];
   groups: GroupDraft[];
   notes?: string[];
 }

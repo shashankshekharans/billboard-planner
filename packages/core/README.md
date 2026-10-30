@@ -32,6 +32,7 @@ The page template does the same maths in its own vanilla JS, so the generated fi
 - `printing`: a number, `extra` or `tbc` (any case; "To be confirmed" works). Left out, it is `tbc`.
 - Positions: `coords` in any format above, or `lat` and `lng`.
 - `rings.center`: `{ lat, lng, label }`, `{ coords, label }` or `{ base: warehouse }`.
+- `cities`: `[{ name: Manesar, coords: "28.3540, 76.9395" }]` adds named city markers. In a spreadsheet's Plan sheet, add `City` rows such as `Manesar: 28.3540, 76.9395`.
 - Map providers: `esri-imagery`, `esri-street`, or `{ url, attribution, max_zoom }`.
 
 ## Scripts
