@@ -1,13 +1,10 @@
 # GitHub Actions workflows
 
-These belong in `.github/workflows/`. They are kept here because the access token used to push from the development laptop cannot change workflow files (it lacks the `workflow` scope).
+The active workflows are in [`.github/workflows/`](../../.github/workflows). They were added through github.com and are written in YAML's compact one-line form; these files are the same workflows laid out for reading and editing.
 
-To turn them on, either:
-
-- on github.com: **Add file → Create new file**, name it `.github/workflows/pages.yml` (or `ci.yml`), paste the file from this folder and commit; or
-- give the token the `workflow` scope (or sign in again with Git Credential Manager), then move the files into `.github/workflows/` and push.
-
-| File | What it does |
+| Workflow | What it does |
 |---|---|
-| `pages.yml` | Builds the browser app and publishes it to GitHub Pages on every push to `main`. Also set **Settings → Pages → Source: GitHub Actions** once. |
-| `ci.yml` | On every push and pull request: type-check, unit tests, builds, and the Playwright smoke tests (start screen → example, hover card without panning, row click, resize, open a spreadsheet, download). |
+| `pages.yml` | Builds the browser app and publishes it to GitHub Pages (https://shashankshekharans.github.io/billboard-planner/) on every push to `main`. Pages source: **GitHub Actions**. |
+| `ci.yml` | On every push and pull request: type-check, unit tests, builds, and the Playwright smoke tests (start screen → example, hover card without panning, row click, resize, photo viewer, open a spreadsheet, download). |
+
+To change a workflow, edit it here and in `.github/workflows/` (the copies must parse to the same YAML). Pushing changes to `.github/workflows/` from the command line needs a token with the `workflow` scope; the github.com editor works without it.

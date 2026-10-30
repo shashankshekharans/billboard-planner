@@ -134,7 +134,7 @@ npm run test:e2e       # Playwright smoke tests
 
 The AAJ Swift example is checked against the hand-built reference page: the tests read the data inside `reference/billboard-plan-example.html` and compare every site, distance, total (₹4,66,000*) and photo with a fresh build from `plan.yaml`.
 
-GitHub Actions workflows for CI and for publishing the app are in [`docs/github-workflows`](docs/github-workflows/README.md).
+CI runs on every push and pull request, and every push to `main` republishes the app to GitHub Pages ([workflows](.github/workflows), [readable copies](docs/github-workflows/README.md)).
 
 ## Licence
 
