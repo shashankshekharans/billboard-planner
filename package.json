@@ -21,7 +21,8 @@
     "build:example": "npm run build && node packages/cli/dist/cli.js build examples/aaj-swift-nh48/plan.yaml",
     "plan": "node packages/cli/dist/cli.js",
     "build:app": "npm run build -w @billboard-planner/app",
-    "dev": "npm run dev -w @billboard-planner/app"
+    "dev": "npm run dev -w @billboard-planner/app",
+    "test:e2e": "playwright test"
   },
   "devDependencies": {
     "@playwright/test": "1.64.1",

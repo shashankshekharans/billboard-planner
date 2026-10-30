@@ -10,3 +10,4 @@ To turn them on, either:
 | File | What it does |
 |---|---|
 | `pages.yml` | Builds the browser app and publishes it to GitHub Pages on every push to `main`. Also set **Settings → Pages → Source: GitHub Actions** once. |
+| `ci.yml` | On every push and pull request: type-check, unit tests, builds, and the Playwright smoke tests (start screen → example, hover card without panning, row click, resize, open a spreadsheet, download). |
