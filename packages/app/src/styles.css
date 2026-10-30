@@ -85,7 +85,9 @@ a { color: var(--sign); font-weight: 600; }
 .brand { display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--ink); margin-right: auto; }
 .brand img { width: 30px; height: 30px; }
 .brand b { font: 700 22px/1 var(--font-display); }
-.bar .actions { display: flex; gap: 6px; flex-wrap: wrap; }
+.bar .actions { display: flex; gap: 6px; flex-wrap: wrap; order: 2; }
+.bar .bar-primary { order: 3; }
+.menu-toggle { display: none; }
 
 /* Example banner */
 .banner { display: flex; align-items: center; gap: 12px 20px; flex-wrap: wrap; padding: 10px 16px; background: var(--sign-soft); border-bottom: 1px solid #c7ddd0; }
@@ -107,13 +109,29 @@ a { color: var(--sign); font-weight: 600; }
 .preview .empty b { font: 700 26px/1.1 var(--font-display); color: var(--ink); }
 .mobile-switch { display: none; }
 
+@media (max-width: 640px) {
+  .bar { gap: 8px; padding: 8px 12px; min-height: 52px; }
+  .brand b { font-size: 19px; }
+  .brand img { width: 26px; height: 26px; }
+  .menu-toggle { display: inline-flex; order: 1; }
+  .bar .bar-primary { order: 1; }
+  .bar .actions { display: none; order: 4; width: 100%; padding-top: 4px; }
+  .bar .actions.open { display: flex; }
+  .bar .actions .btn { flex: 1; justify-content: center; }
+  .banner { padding: 8px 12px; gap: 8px 12px; }
+  .banner p { font-size: 14px; }
+}
+
 @media (max-width: 900px) {
   .workspace { grid-template-columns: 1fr; }
   .mobile-switch { display: flex; gap: 4px; padding: 6px 16px; background: var(--surface); border-bottom: 1px solid var(--line); }
   .mobile-switch button { flex: 1; }
   .workspace[data-view="edit"] .preview, .workspace[data-view="preview"] .panel { display: none; }
   .panel, .preview { height: auto; min-height: 70vh; }
-  .workspace.full .preview { height: 75vh; }
+  /* The example fills the rest of the screen */
+  #app:has(.workspace.full) { height: 100dvh; }
+  .workspace.full { display: flex; flex-direction: column; min-height: 0; }
+  .workspace.full .preview { flex: 1; height: auto; min-height: 0; }
 }
 
 /* ---- Forms ---- */

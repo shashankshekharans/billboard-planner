@@ -24,6 +24,7 @@ export function Editor(props: Props) {
   const { ws, readOnly } = props;
   const [tab, setTab] = useState<"plan" | "sites">("sites");
   const [view, setView] = useState<"edit" | "preview">("edit");
+  const [menuOpen, setMenuOpen] = useState(false);
   const [page, setPage] = useState<PageResult>({ issues: [], warnings: [] });
   const lastGood = useRef<string>();
   const openInput = useRef<HTMLInputElement>(null);
@@ -61,7 +62,10 @@ export function Editor(props: Props) {
           <img src="favicon.svg" alt="" />
           <b>Billboard Planner</b>
         </a>
-        <div class="actions">
+        {/* Secondary actions fold into a menu on phones; the main action stays visible */}
+        <button class="btn menu-toggle" type="button" aria-expanded={menuOpen} aria-controls="bar-actions" onClick={() => setMenuOpen(o => !o)}>Menu</button>
+        {!readOnly && <button class="btn primary bar-primary" type="button" onClick={exportPage} disabled={!page.html}>Download page</button>}
+        <div class={`actions ${menuOpen ? "open" : ""}`} id="bar-actions" onClick={() => setMenuOpen(false)}>
           {readOnly ? (
             <>
               <button class="btn" type="button" onClick={props.onNew}>Start a new plan</button>
@@ -72,7 +76,6 @@ export function Editor(props: Props) {
               <button class="btn quiet" type="button" onClick={props.onExample}>View example</button>
               <button class="btn quiet" type="button" onClick={props.onNew}>New plan</button>
               <button class="btn" type="button" onClick={() => openInput.current?.click()}>Open…</button>
-              <button class="btn primary" type="button" onClick={exportPage} disabled={!page.html}>Download page</button>
             </>
           )}
         </div>
@@ -96,7 +99,7 @@ export function Editor(props: Props) {
         </div>
       )}
 
-      <main class={`workspace ${readOnly ? "full" : ""}`} data-view={view}>
+      <main class={`workspace ${readOnly ? "full" : ""}`} data-view={readOnly ? "preview" : view}>
         {!readOnly && ws && (
           <aside class="panel" aria-label="Edit plan">
             <div class="tabs" role="tablist">

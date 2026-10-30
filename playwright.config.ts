@@ -11,7 +11,10 @@ export default defineConfig({
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? [["github"], ["list"]] : "list",
   use: { baseURL: "http://localhost:4173", trace: "retain-on-failure" },
-  projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"], viewport: { width: 1280, height: 800 } } }],
+  projects: [
+    { name: "chromium", testIgnore: /mobile\.spec/, use: { ...devices["Desktop Chrome"], viewport: { width: 1280, height: 800 } } },
+    { name: "phone", testMatch: /mobile\.spec/, use: { ...devices["iPhone 13"], browserName: "chromium" } }
+  ],
   webServer: {
     command: "npm run preview -w @billboard-planner/app",
     url: "http://localhost:4173",

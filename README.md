@@ -19,6 +19,7 @@ Open the app and choose **View example** to explore a real plan: seven hoardings
 - 📍 **Distance from your base**, such as a warehouse, store or office, for every site
 - ⭕ **Radius rings** (e.g. 20 km and 50 km) to see coverage at a glance
 - 📊 **Costing table** grouped by route, with subtotals and a grand total
+- 📱 **Works on phones**: the map, cards, photos and costing table adapt to small screens, for plans shared on WhatsApp
 - 📦 **One self-contained file**: photos, logo and data built in, nothing to install for viewers
 - 🔍 **Full-size photos**: click a card's photo to view it full screen, with arrows for sites that have several
 - 🏙️ **City markers** (e.g. Gurgaon, Manesar) to help people find their way around the map

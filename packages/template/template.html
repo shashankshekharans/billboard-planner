@@ -52,7 +52,9 @@ header.top .wrap { display: flex; align-items: center; justify-content: space-be
 .map-ctrl button { font: 600 13px/1 var(--font-body); padding: 10px 14px; border: 0; background: transparent; color: var(--ink); cursor: pointer; }
 .map-ctrl button[aria-pressed="true"] { background: var(--ink); color: var(--surface); }
 .map-ctrl button:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
-.legend { position: absolute; z-index: 500; left: 12px; bottom: 30px; background: var(--surface); border-radius: 8px; padding: 10px 12px; box-shadow: 0 2px 10px rgba(0,0,0,.25); display: grid; gap: 6px; font-size: 13px; }
+.legend { position: absolute; z-index: 500; left: 12px; bottom: 30px; background: var(--surface); border-radius: 8px; padding: 10px 12px; box-shadow: 0 2px 10px rgba(0,0,0,.25); font-size: 13px; }
+.legend-body { display: grid; gap: 6px; }
+.legend summary { display: none; }
 .legend span { display: flex; align-items: center; gap: 8px; }
 .legend i { width: 12px; height: 12px; border-radius: 50%; display: inline-block; border: 2px solid #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.25); }
 .legend i.swatch { background: var(--gc); }
@@ -73,6 +75,9 @@ header.top .wrap { display: flex; align-items: center; justify-content: space-be
 .resize-handle:focus-visible { outline: none; }
 body.resizing { user-select: none; cursor: ns-resize; }
 .card-photo { position: relative; aspect-ratio: 16/10; background: var(--line); }
+/* Close button for touch screens (no mouse to move off the card) */
+.card-close { display: none; position: absolute; z-index: 2; top: 8px; left: 8px; width: 34px; height: 34px; border-radius: 50%; border: 0; background: rgba(255,255,255,.95); color: var(--ink); font-size: 22px; line-height: 1; cursor: pointer; box-shadow: 0 1px 6px rgba(0,0,0,.35); }
+@media (hover: none), (max-width: 640px) { .card-close { display: block; } }
 .card-photo img { width: 100%; height: 100%; object-fit: contain; display: block; background: #111; }
 .ph { width: 100%; height: 100%; display: grid; place-items: center; background: repeating-linear-gradient(135deg, var(--bg) 0 10px, var(--surface) 10px 20px); }
 .ph .board { border: 2px solid var(--muted); border-radius: 2px; display: grid; place-items: center; color: var(--muted); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; text-align: center; padding: 4px; background: var(--surface); }
@@ -141,7 +146,35 @@ td a:hover { text-decoration: underline; }
 
 @media (max-width: 640px) {
   .map-shell { height: 60vh; min-height: 360px; }
-  .legend { bottom: 22px; font-size: 12px; }
+  .legend { bottom: 22px; font-size: 12px; max-width: calc(100% - 24px); }
+  .legend summary { display: block; cursor: pointer; font-weight: 600; padding: 2px 0; }
+  .legend[open] summary { margin-bottom: 6px; }
+  .legend:not([open]) { padding: 6px 10px; }
+
+  /* Header: logo above the title */
+  header.top .wrap { flex-direction: column; align-items: flex-start; gap: 8px; padding-block: 10px; }
+  .logo, .logo img { height: 34px; }
+  .title { text-align: left; }
+  .title h1 { font-size: 26px; }
+
+  /* Table: each site becomes a card */
+  table { min-width: 0; }
+  .table-scroll { overflow: visible; }
+  thead { display: none; }
+  table, tbody, tfoot { display: block; }
+  tr.group, tr.group td { display: block; }
+  tr.site { display: grid; grid-template-columns: 30px 1fr 1fr; gap: 6px 12px; padding: 12px 12px 12px 10px; border-bottom: 1px solid var(--line); }
+  tr.site td { border: 0; padding: 0; text-align: left; white-space: normal; }
+  tr.site td.c-idx { grid-row: 1; grid-column: 1; }
+  tr.site td.c-loc { grid-row: 1; grid-column: 2 / -1; }
+  tr.site td:nth-child(n+3):nth-child(odd) { grid-column: 2; }
+  tr.site td:nth-child(n+3):nth-child(even) { grid-column: 3; }
+  td[data-label]::before { content: attr(data-label); display: block; font-size: 11px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); }
+  tr.sub, tfoot tr { display: flex; flex-wrap: wrap; gap: 6px 18px; padding: 10px 12px; border-bottom: 1px solid var(--line); }
+  tr.sub td, tfoot td { border: 0; padding: 0; text-align: left; }
+  tr.sub td:empty, tfoot td:empty { display: none; }
+  tr.sub td.c-loc, tfoot td.c-loc { flex-basis: 100%; }
+  tfoot td.num { font-size: 17px; }
 }
 [hidden] { display: none !important; }
 /* City markers: blue dot with a name label (orientation only) */
@@ -183,7 +216,7 @@ td a:hover { text-decoration: underline; }
     <button type="button" id="v-map" aria-pressed="false">Map</button>
   </div>
   <button type="button" class="fit-btn" id="fit">Show all sites</button>
-  <div class="legend" id="legend"></div>
+  <details class="legend" id="legend" open></details>
 </section>
 
 <section class="summary">
@@ -275,11 +308,13 @@ if (PLAN.logo) document.getElementById("logo").innerHTML = `<img src="${esc(PLAN
 
 /* Legend */
 const ringPlace = RINGS ? (RINGS.center.label || "centre") : "";
-document.getElementById("legend").innerHTML =
+const legendEl = document.getElementById("legend");
+legendEl.innerHTML = `<summary>Map key</summary><div class="legend-body">` +
   GROUPS.map(g => `<span><i class="swatch ${gcls(g.id)}"></i>${esc(g.name)}</span>`).join("") +
   BASES.map(b => `<span><i class="wh-key"></i>${esc(b.legendLabel || b.name)}</span>`).join("") +
   (CITIES.length ? `<span><i class="city-key"></i>City</span>` : "") +
-  (RINGS ? `<label for="rings"><input type="checkbox" id="rings"${RINGS.visible === false ? "" : " checked"}> ${esc(listJoin(RINGS.radiiKm.map(km => km + " km")))} from ${esc(ringPlace)}</label>` : "");
+  (RINGS ? `<label for="rings"><input type="checkbox" id="rings"${RINGS.visible === false ? "" : " checked"}> ${esc(listJoin(RINGS.radiiKm.map(km => km + " km")))} from ${esc(ringPlace)}</label>` : "") + `</div>`;
+if (matchMedia("(max-width: 640px)").matches) legendEl.open = false;   // phones: folded, so it does not cover the map
 
 /* Map */
 const map = L.map("map", { zoomControl: true, scrollWheelZoom: true });
@@ -324,7 +359,7 @@ if (RINGS) {
 
 CITIES.forEach(c => L.marker([c.lat, c.lng], {
   icon: L.divIcon({ className: "", html: `<div class="city"><i></i><b>${esc(c.name)}</b></div>`, iconSize: [120, 24], iconAnchor: [8, 12] }),
-  zIndexOffset: 500, keyboard: false, title: c.name
+  zIndexOffset: -500, keyboard: false, interactive: false, title: c.name
 }).addTo(map));
 
 BASES.forEach(b => {
@@ -332,11 +367,20 @@ BASES.forEach(b => {
     ? `<div class="wh-chip"><img src="${esc(b.markerLogo)}" alt="${esc(b.legendLabel || b.name)}"></div>`
     : `<div class="wh-chip wh-text">${esc(b.name)}</div>`;
   const icon = L.divIcon({ className: "", html: `<div class="wh">${chip}<div class="wh-tip"></div></div>`, iconSize: [96, 44], iconAnchor: [48, 44] });
-  L.marker([b.lat, b.lng], { icon, zIndexOffset: 1000, title: b.name }).addTo(map)
+  L.marker([b.lat, b.lng], { icon, zIndexOffset: -1000, title: b.name }).addTo(map)
     .bindTooltip(`<b>${esc(b.name)}</b><br>${b.lat.toFixed(6)}, ${b.lng.toFixed(6)}`, { direction: "top", offset: [0, -46] });
 });
+const shellEl = () => document.querySelector(".map-shell");
 const fitAll = () => bounds.isValid() ? map.fitBounds(bounds, { padding: [60, 60] }) : map.setView([20, 78], 4);
 fitAll();
+if (window.ResizeObserver) {
+  let hidden = !shellEl().clientWidth || !shellEl().clientHeight;
+  new ResizeObserver(() => {
+    const nowHidden = !shellEl().clientWidth || !shellEl().clientHeight;
+    if (hidden && !nowHidden) { map.invalidateSize({ pan: false }); fitAll(); }
+    hidden = nowHidden;
+  }).observe(shellEl());
+}
 document.getElementById("fit").onclick = () => { hideCard(); fitAll(); };
 
 /* Card */
@@ -353,6 +397,7 @@ function photoHTML(s, i) {
 function cardHTML(s, n) {
   const g = GROUP[s.group] || { name: "" }, note = noteText(s);
   return `
+  <button type="button" class="card-close" aria-label="Close site card">×</button>
   <div class="card-photo" data-i="0">${photoHTML(s, 0)}</div>
   <div class="card-body">
     <div class="card-head">
@@ -383,7 +428,9 @@ let closeT = null;
 const rowsEl = document.getElementById("rows");
 
 const cardEl = document.getElementById("card"), shell = document.querySelector(".map-shell");
-let openN = 0;
+let openN = 0, cardShownAt = 0;
+// On phones the card can open under the finger that tapped the pin; ignore that tap's follow-up click on the card.
+const justOpened = () => performance.now() - cardShownAt < 450;
 
 function placeCard() {
   if (!openN) return;
@@ -403,6 +450,7 @@ function showCard(n) {
   openN = n;
   const s = SITES[n - 1];
   cardEl.innerHTML = cardHTML(s, n);
+  cardShownAt = performance.now();
   cardEl.style.maxHeight = (shell.clientHeight - 16) + "px";
   cardEl.hidden = false;
   placeCard();
@@ -415,7 +463,8 @@ const hideSoon = () => { clearTimeout(closeT); closeT = setTimeout(hideCard, 300
 cardEl.addEventListener("mouseenter", () => clearTimeout(closeT));
 cardEl.addEventListener("mouseleave", hideSoon);
 cardEl.addEventListener("click", ev => {
-  const b = ev.target.closest(".nav"); if (!b || !openN) return;
+  if (ev.target.closest(".card-close")) { if (!justOpened()) hideCard(); return; }
+  const b = ev.target.closest(".nav"); if (!b || !openN || justOpened()) return;
   const box = cardEl.querySelector(".card-photo"), k = +box.dataset.i + +b.dataset.d;
   box.dataset.i = k; box.innerHTML = photoHTML(SITES[openN - 1], k);
 });
@@ -455,26 +504,26 @@ GROUPS.forEach(g => {
   list.forEach(([s, n]) => {
     sub.rate += s.ratePerMonth; sub.print += hasPrint(s) ? s.printing : 0; sub.total += total(s); sub.area += area(s); if (!hasPrint(s)) sub.extra = true;
     html += `<tr class="site" id="row-${n}" data-n="${n}" tabindex="0">
-      <td><span class="idx ${gcls(g.id)}">${n}</span></td>
-      <td><div class="loc">${esc(s.location)}</div>
+      <td class="c-idx"><span class="idx ${gcls(g.id)}">${n}</span></td>
+      <td class="c-loc"><div class="loc">${esc(s.location)}</div>
         <div class="meta"><span>${esc(s.mediaVehicle || "—")}${s.qty > 1 ? " × " + s.qty : ""}</span>${s.facing ? `<span>Facing ${esc(s.facing)}</span>` : ""}<a href="${gm(s)}" target="_blank" rel="noopener">${s.lat.toFixed(6)}, ${s.lng.toFixed(6)} ↗</a></div></td>
-      <td class="num">${s.widthFt} × ${s.heightFt}</td>
-      <td class="num">${num(area(s))}</td>
-      <td>${esc(s.illumination || "—")}</td>
-      <td class="num">${cur(s.ratePerMonth)}</td>
-      <td class="num">${hasPrint(s) ? cur(s.printing) : `<span class="extra">${printLabel(s)}</span>`}</td>
-      <td class="num"><b>${cur(total(s))}${hasPrint(s) ? "" : "*"}</b></td>
-      ${BASE ? `<td class="num">${baseKm(s)} km</td>` : ""}
+      <td class="num" data-label="Size (ft)">${s.widthFt} × ${s.heightFt}</td>
+      <td class="num" data-label="Area (sq ft)">${num(area(s))}</td>
+      <td data-label="Illum.">${esc(s.illumination || "—")}</td>
+      <td class="num" data-label="Rate / month">${cur(s.ratePerMonth)}</td>
+      <td class="num" data-label="Printing &amp; mounting">${hasPrint(s) ? cur(s.printing) : `<span class="extra">${printLabel(s)}</span>`}</td>
+      <td class="num c-total" data-label="${esc(TOTAL_LABEL)}"><b>${cur(total(s))}${hasPrint(s) ? "" : "*"}</b></td>
+      ${BASE ? `<td class="num" data-label="From ${esc(BASE_LABEL)}">${baseKm(s)} km</td>` : ""}
     </tr>`;
   });
-  html += `<tr class="sub"><td></td><td>Subtotal</td><td></td><td class="num">${num(sub.area)}</td><td></td>
-    <td class="num">${cur(sub.rate)}</td><td class="num">${cur(sub.print)}${sub.extra ? " + extra" : ""}</td><td class="num">${cur(sub.total)}${sub.extra ? "*" : ""}</td>${tail}</tr>`;
+  html += `<tr class="sub"><td></td><td class="c-loc">Subtotal</td><td></td><td class="num" data-label="Area (sq ft)">${num(sub.area)}</td><td></td>
+    <td class="num" data-label="Rate / month">${cur(sub.rate)}</td><td class="num" data-label="Printing &amp; mounting">${cur(sub.print)}${sub.extra ? " + extra" : ""}</td><td class="num" data-label="${esc(TOTAL_LABEL)}">${cur(sub.total)}${sub.extra ? "*" : ""}</td>${tail}</tr>`;
   grand.rate += sub.rate; grand.print += sub.print; grand.total += sub.total; grand.area += sub.area; grand.extra = grand.extra || sub.extra;
 });
 rowsEl.innerHTML = html;
 const star = grand.extra ? "*" : "";
-document.getElementById("foot").innerHTML = `<tr><td></td><td>Grand total · ${SITES.length} sites</td><td></td><td class="num">${num(grand.area)}</td><td></td>
-  <td class="num">${cur(grand.rate)}</td><td class="num">${cur(grand.print)}${grand.extra ? " + extra" : ""}</td><td class="num">${cur(grand.total)}${star}</td>${tail}</tr>`;
+document.getElementById("foot").innerHTML = `<tr><td></td><td class="c-loc">Grand total · ${SITES.length} sites</td><td></td><td class="num" data-label="Area (sq ft)">${num(grand.area)}</td><td></td>
+  <td class="num" data-label="Rate / month">${cur(grand.rate)}</td><td class="num" data-label="Printing &amp; mounting">${cur(grand.print)}${grand.extra ? " + extra" : ""}</td><td class="num" data-label="${esc(TOTAL_LABEL)}">${cur(grand.total)}${star}</td>${tail}</tr>`;
 
 document.getElementById("stats").innerHTML = [
   ["Sites", SITES.length],
@@ -549,7 +598,7 @@ document.addEventListener("keydown", e => {
   if (e.key === "ArrowRight" && lbSite.photos.length > 1) { lbI++; lbShow(); }
 });
 cardEl.addEventListener("click", ev => {
-  const im = ev.target.closest(".card-photo img"); if (!im || !openN) return;
+  const im = ev.target.closest(".card-photo img"); if (!im || !openN || justOpened()) return;
   const s = SITES[openN - 1]; if (!s.photos.length) return;
   openLightbox(s, +cardEl.querySelector(".card-photo").dataset.i || 0);
 });
