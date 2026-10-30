@@ -18,7 +18,7 @@
     "build": "npm run build -w @billboard-planner/core && npm run build -w @billboard-planner/cli",
     "test": "npm test --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",
-    "build:example": "npm run build:example -w @billboard-planner/template",
+    "build:example": "npm run build && node packages/cli/dist/cli.js build examples/aaj-swift-nh48/plan.yaml",
     "plan": "node packages/cli/dist/cli.js"
   },
   "devDependencies": {

@@ -20,7 +20,6 @@
     "template.html"
   ],
   "scripts": {
-    "test": "node --test \"test/**/*.test.js\"",
-    "build:example": "node scripts/build-example.mjs"
+    "test": "node --test \"test/**/*.test.js\""
   }
 }

@@ -37,8 +37,7 @@ Each site: `{ id, group, mediaVehicle, location, facing, lat, lng, widthFt, heig
 ## Scripts
 
 ```bash
-npm test                 # unit tests for renderPlan (node:test)
-npm run build:example    # dist/aaj-swift-nh48.html from test/fixtures/aaj-swift-nh48.json
+npm test     # unit tests for renderPlan (node:test)
 ```
 
-The example build is temporary: once the CLI exists it will build from `examples/aaj-swift-nh48/plan.yaml` instead.
+`test/fixtures/aaj-swift-nh48.json` is the AAJ Swift plan data in this shape. Build the real page with the CLI from the repository root: `npm run build:example` writes `examples/aaj-swift-nh48/plan.html`.
