@@ -1,0 +1,17 @@
+{
+  "name": "billboard-planner",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Turn a vendor's billboard list into a live satellite map your whole team can read. Pins, photos, rates and distances in one shareable HTML file.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/shashankshekharans/aaj-billboard-planner.git"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "workspaces": [
+    "packages/*"
+  ]
+}

@@ -1,0 +1,6 @@
+# Same line endings on every laptop
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.xlsx binary

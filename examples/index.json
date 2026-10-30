@@ -1,0 +1,12 @@
+{
+  "examples": [
+    {
+      "id": "aaj-swift-nh48",
+      "title": "AAJ Swift – NH-48 Billboard Plan",
+      "description": "Seven hoardings and a unipole along the NH-48 Delhi–Jaipur Highway near Dharuhera, planned from AAJ Swift's Gurugram warehouse. Sample rates.",
+      "plan": "aaj-swift-nh48/plan.yaml",
+      "reference": "aaj-swift-nh48/reference/billboard-plan-example.html",
+      "default": true
+    }
+  ]
+}

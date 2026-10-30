@@ -1,0 +1,7 @@
+{
+  "name": "@billboard-planner/template",
+  "version": "0.0.0",
+  "private": true,
+  "description": "HTML, CSS and vanilla JS of the generated plan page (Leaflet from cdnjs, no build step).",
+  "license": "MIT"
+}

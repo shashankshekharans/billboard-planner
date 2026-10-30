@@ -1,0 +1,7 @@
+{
+  "name": "@billboard-planner/cli",
+  "version": "0.0.0",
+  "private": true,
+  "description": "The build command: reads a plan file and photos, writes one self-contained plan.html.",
+  "license": "MIT"
+}

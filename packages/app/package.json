@@ -1,0 +1,7 @@
+{
+  "name": "@billboard-planner/app",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Browser app: start screen, bundled example viewer and plan editor (deployed to GitHub Pages).",
+  "license": "MIT"
+}
