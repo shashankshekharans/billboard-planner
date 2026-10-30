@@ -429,8 +429,12 @@ const rowsEl = document.getElementById("rows");
 
 const cardEl = document.getElementById("card"), shell = document.querySelector(".map-shell");
 let openN = 0, cardShownAt = 0;
-// On phones the card can open under the finger that tapped the pin; ignore that tap's follow-up click on the card.
-const justOpened = () => performance.now() - cardShownAt < 450;
+// Touch and mouse behave differently: a mouse closes the card by moving off it; on touch it stays open until × or a tap
+// on the map, and the card can open under the finger that tapped the pin, so that tap's follow-up click is ignored.
+let lastPointer = "mouse";
+addEventListener("pointerdown", e => { lastPointer = e.pointerType || "mouse"; }, true);
+const isTouch = () => lastPointer !== "mouse";
+const justOpened = () => isTouch() && performance.now() - cardShownAt < 450;
 
 function placeCard() {
   if (!openN) return;
@@ -458,7 +462,7 @@ function showCard(n) {
   highlight(n, true);
 }
 function hideCard() { clearTimeout(closeT); if (!openN) return; highlight(openN, false); openN = 0; cardEl.hidden = true; }
-const hideSoon = () => { clearTimeout(closeT); closeT = setTimeout(hideCard, 300); };
+const hideSoon = () => { if (isTouch()) return; clearTimeout(closeT); closeT = setTimeout(hideCard, 300); };
 
 cardEl.addEventListener("mouseenter", () => clearTimeout(closeT));
 cardEl.addEventListener("mouseleave", hideSoon);

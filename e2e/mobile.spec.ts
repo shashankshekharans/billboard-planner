@@ -63,8 +63,9 @@ test.describe("generated page on a phone", () => {
     const card = page.locator("#card");
     await expect(card).toBeVisible();
     await expect(card).toContainText("Binalo – Near Stella Showroom");
-    await page.waitForTimeout(600);
-    await expect(page.locator(".lightbox")).toBeHidden();
+    await page.waitForTimeout(900);
+    await expect(card).toBeVisible();                       // touch: no hover auto-close
+    await expect(page.locator(".lightbox")).toBeHidden();   // the tap did not also open the photo
     await card.locator(".card-photo img").tap();
     await expect(page.locator(".lightbox")).toBeVisible();
     await page.locator(".lb-close").tap();
