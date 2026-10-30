@@ -1,0 +1,47 @@
+{
+  "title": "Billboard Plan",
+  "subtitle": "Example plan · NH-48 corridor · **Sample rates for demonstration**",
+  "logo": "logos/aaj-swift.png",
+  "currency": "INR",
+  "locale": "en-IN",
+  "brand": { "primary": "#c1202d" },
+  "map": {
+    "defaultView": "satellite",
+    "providers": { "satellite": "esri-imagery", "road": "esri-street" }
+  },
+  "bases": [
+    {
+      "id": "warehouse",
+      "name": "AAJ Swift Warehouse",
+      "label": "warehouse",
+      "legendLabel": "AAJ Swift warehouse",
+      "lat": 28.24132198237465,
+      "lng": 76.9355599373958,
+      "markerLogo": "logos/aaj-mark.png",
+      "distanceFrom": true
+    }
+  ],
+  "rings": {
+    "center": { "lat": 28.4595, "lng": 77.0266, "label": "Gurgaon" },
+    "radiiKm": [20, 50],
+    "visible": true
+  },
+  "groups": [
+    { "id": "hwy", "name": "Delhi Jaipur Highway", "color": "#0f6b3e", "soft": "#e3f0e8" },
+    { "id": "binalo", "name": "Binalo – Near Stella Showroom", "color": "#c27a06", "soft": "#fbf0dc" }
+  ],
+  "notes": [
+    "Qty 1 per site. Rates are per month (D.C.P.M), booked for 30 days. Printing & mounting is a one-time charge (black back). Illum. N/L = non-lit. Distances are straight-line.",
+    "All rates and printing costs on this page are sample figures for demonstration, not real vendor quotes. Binalo shows how a cost marked \"Extra\" and GST notes appear."
+  ],
+  "sites": [
+    { "id": "1", "group": "hwy", "mediaVehicle": "Hoarding", "location": "Delhi Rd. Kasola Chowk Before Flyover", "facing": "Jaipur", "lat": 28.135394, "lng": 76.650181, "widthFt": 40, "heightFt": 30, "qty": 1, "illumination": "N/L", "ratePerMonth": 36000, "days": 30, "printing": 12000, "photos": ["photos/1.jpg"] },
+    { "id": "2", "group": "hwy", "mediaVehicle": "Hoarding", "location": "Delhi Rd – Agarwal Movers & Packers", "facing": "Delhi", "lat": 28.182914, "lng": 76.717585, "widthFt": 40, "heightFt": 20, "qty": 1, "illumination": "N/L", "ratePerMonth": 24000, "days": 30, "printing": 8000, "photos": ["photos/2.jpg"] },
+    { "id": "3", "group": "hwy", "mediaVehicle": "Hoarding", "location": "Opp. N.H. Desi Hotel, Khijuri Agarwal Movers", "facing": "Jaipur", "lat": 28.186815, "lng": 76.722692, "widthFt": 40, "heightFt": 20, "qty": 1, "illumination": "N/L", "ratePerMonth": 24000, "days": 30, "printing": 8000, "photos": ["photos/3.jpg"] },
+    { "id": "4", "group": "hwy", "mediaVehicle": "Hoarding", "location": "Opp. N.H. Desi Hotel, Khijuri Agarwal Movers", "facing": "Delhi", "lat": 28.187389, "lng": 76.723787, "widthFt": 40, "heightFt": 20, "qty": 1, "illumination": "N/L", "ratePerMonth": 24000, "days": 30, "printing": 8000, "photos": ["photos/4.jpg"] },
+    { "id": "5", "group": "hwy", "mediaVehicle": "Hoarding", "location": "Delhi Road – Dharuheda Rajwada", "facing": "Jaipur", "lat": 28.204861, "lng": 76.767246, "widthFt": 40, "heightFt": 20, "qty": 1, "illumination": "N/L", "ratePerMonth": 26000, "days": 30, "printing": 8000, "photos": ["photos/5.jpg"] },
+    { "id": "6", "group": "hwy", "mediaVehicle": "Hoarding", "location": "Delhi Road – Dharuheda", "facing": "Jaipur", "lat": 28.220244, "lng": 76.796553, "widthFt": 80, "heightFt": 30, "qty": 1, "illumination": "N/L", "ratePerMonth": 72000, "days": 30, "printing": 24000, "photos": ["photos/6.jpg"] },
+    { "id": "7", "group": "hwy", "mediaVehicle": "Hoarding", "location": "Delhi Road – Dharuhera", "facing": "Delhi", "lat": 28.221989, "lng": 76.797893, "widthFt": 50, "heightFt": 20, "qty": 1, "illumination": "N/L", "ratePerMonth": 32000, "days": 30, "printing": 10000, "photos": ["photos/7.jpg"] },
+    { "id": "8", "group": "binalo", "mediaVehicle": "Unipole", "location": "Binalo – Near Stella Showroom", "facing": "", "lat": 28.30119, "lng": 76.872404, "widthFt": 30, "heightFt": 15, "qty": 1, "illumination": "", "ratePerMonth": 150000, "days": 30, "printing": "extra", "taxNote": "GST extra", "photos": ["photos/8a.jpg", "photos/8b.jpg", "photos/8c.jpg"] }
+  ]
+}

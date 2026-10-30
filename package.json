@@ -13,5 +13,9 @@
   },
   "workspaces": [
     "packages/*"
-  ]
+  ],
+  "scripts": {
+    "test": "npm test --workspaces --if-present",
+    "build:example": "npm run build:example -w @billboard-planner/template"
+  }
 }

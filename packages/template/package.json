@@ -3,5 +3,16 @@
   "version": "0.0.0",
   "private": true,
   "description": "HTML, CSS and vanilla JS of the generated plan page (Leaflet from cdnjs, no build step).",
-  "license": "MIT"
+  "license": "MIT",
+  "type": "module",
+  "main": "index.js",
+  "exports": {
+    ".": "./index.js",
+    "./template.html": "./template.html"
+  },
+  "files": ["index.js", "template.html"],
+  "scripts": {
+    "test": "node --test \"test/**/*.test.js\"",
+    "build:example": "node scripts/build-example.mjs"
+  }
 }

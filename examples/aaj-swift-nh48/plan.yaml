@@ -10,7 +10,7 @@
 
 plan:
   title: Billboard Plan
-  subtitle: Example plan · NH-48 corridor · Sample rates for demonstration
+  subtitle: "Example plan · NH-48 corridor · **Sample rates for demonstration**"   # **bold**
   logo: logos/aaj-swift.png
   currency: INR
   locale: en-IN
@@ -22,6 +22,8 @@ plan:
   bases:
     - id: warehouse
       name: AAJ Swift Warehouse
+      label: warehouse                 # "From our warehouse", "From warehouse" column
+      legend_label: AAJ Swift warehouse
       lat: 28.24132198237465
       lng: 76.9355599373958
       marker_logo: logos/aaj-mark.png
@@ -31,12 +33,10 @@ plan:
     radii_km: [20, 50]
     visible: true
   groups:
-    - { id: hwy, name: Delhi Jaipur Highway, color: "#0f6b3e" }
-    - { id: binalo, name: Binalo – Near Stella Showroom, color: "#c27a06" }
+    - { id: hwy, name: Delhi Jaipur Highway, color: "#0f6b3e", soft: "#e3f0e8" }
+    - { id: binalo, name: Binalo – Near Stella Showroom, color: "#c27a06", soft: "#fbf0dc" }
   notes:
-    - Qty 1 per site. Rates are per month (D.C.P.M), booked for 30 days.
-    - Printing & mounting is a one-time charge (black back).
-    - Illum. N/L = non-lit. Distances are straight-line.
+    - Qty 1 per site. Rates are per month (D.C.P.M), booked for 30 days. Printing & mounting is a one-time charge (black back). Illum. N/L = non-lit. Distances are straight-line.
     - All rates and printing costs on this page are sample figures for demonstration, not real vendor quotes. Binalo shows how a cost marked "Extra" and GST notes appear.
 
 sites:

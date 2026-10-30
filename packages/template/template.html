@@ -1,0 +1,506 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light only">
+<title>__PLAN_TITLE__</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<style>
+/* Layout: logo header, map takes ~65% of the screen, then summary and the site table.
+   Group colours come from the plan data: each group gets a .g-<id> class that sets --gc (colour) and --gs (soft tint). */
+:root {
+  --bg: #f3f5f2;
+  --surface: #ffffff;
+  --ink: #142019;
+  --muted: #5d6b63;
+  --line: #d9dfda;
+  --accent: #0f6b3e;       /* links, focus rings; set from the plan (defaults to the first group's colour) */
+  --brand: #c1202d;        /* base marker chip border; set from plan.brand.primary */
+  --warn: #c27a06;         /* "Extra" / "TBC" costs */
+  --hl: #fff6cf;
+  --font-display: "Barlow Condensed", "Arial Narrow", system-ui, sans-serif;
+  --font-body: "Barlow", system-ui, -apple-system, "Segoe UI", sans-serif;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--bg); color: var(--ink);
+  font-family: var(--font-body); font-size: 15px; line-height: 1.45;
+  font-variant-numeric: tabular-nums;
+}
+.wrap { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); max-width: 1440px; margin: 0 auto; }
+
+/* Header */
+header.top { background: var(--surface); border-bottom: 1px solid var(--line); }
+header.top .wrap { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-block: 12px; }
+.logo { height: 44px; display: flex; align-items: center; }
+.logo img { height: 44px; width: auto; }
+.logo-slot { height: 44px; padding: 0 16px; border: 1.5px dashed var(--line); border-radius: 6px; display: flex; align-items: center; color: var(--muted); font-size: 13px; letter-spacing: .04em; text-transform: uppercase; }
+.title { text-align: right; }
+.title h1 { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: clamp(24px, 3.2vw, 34px); letter-spacing: .01em; line-height: 1; text-transform: uppercase; }
+.title p { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
+
+/* Map */
+.map-shell { position: relative; height: 65vh; min-height: 420px; max-height: 820px; }
+#map { position: absolute; inset: 0; background: #1b2420; }
+.map-ctrl { position: absolute; z-index: 500; top: 12px; right: 12px; display: flex; background: var(--surface); border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,.25); overflow: hidden; }
+.map-ctrl button { font: 600 13px/1 var(--font-body); padding: 10px 14px; border: 0; background: transparent; color: var(--ink); cursor: pointer; }
+.map-ctrl button[aria-pressed="true"] { background: var(--ink); color: var(--surface); }
+.map-ctrl button:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.legend { position: absolute; z-index: 500; left: 12px; bottom: 30px; background: var(--surface); border-radius: 8px; padding: 10px 12px; box-shadow: 0 2px 10px rgba(0,0,0,.25); display: grid; gap: 6px; font-size: 13px; }
+.legend span { display: flex; align-items: center; gap: 8px; }
+.legend i { width: 12px; height: 12px; border-radius: 50%; display: inline-block; border: 2px solid #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.25); }
+.legend i.swatch { background: var(--gc); }
+.fit-btn { position: absolute; z-index: 500; top: 56px; right: 12px; font: 600 13px/1 var(--font-body); padding: 10px 14px; border: 0; border-radius: 8px; background: var(--surface); color: var(--ink); box-shadow: 0 2px 10px rgba(0,0,0,.25); cursor: pointer; }
+
+/* Pins */
+.pin { width: 30px; height: 30px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); display: grid; place-items: center; border: 2px solid #fff; box-shadow: 0 2px 6px rgba(0,0,0,.45); transition: transform .15s; background: var(--gc); }
+.pin b { transform: rotate(45deg); color: #fff; font: 700 14px/1 var(--font-display); }
+.pin.active { transform: rotate(-45deg) scale(1.25); }
+
+/* Hover card */
+.site-card { position: absolute; z-index: 700; left: 0; top: 0; width: 340px; max-width: calc(100% - 16px); overflow: auto; background: var(--surface); color: var(--ink); border-radius: 10px; box-shadow: 0 8px 28px rgba(0,0,0,.4); font-size: 13px; line-height: 1.4; }
+.resize-handle { position: absolute; z-index: 800; left: 0; right: 0; bottom: 0; height: 16px; transform: translateY(50%); cursor: ns-resize; display: grid; place-items: center; touch-action: none; }
+.resize-handle::before { content: ""; position: absolute; left: 0; right: 0; top: 50%; height: 6px; transform: translateY(-50%); background: var(--surface); border-block: 1px solid var(--line); }
+.resize-handle span { position: relative; width: 56px; height: 16px; border-radius: 8px; background: var(--surface); border: 1px solid var(--line); box-shadow: 0 1px 4px rgba(0,0,0,.2); display: grid; place-items: center; }
+.resize-handle span::after { content: ""; width: 22px; height: 6px; border-block: 2px solid var(--muted); }
+.resize-handle:hover span, .resize-handle:focus-visible span, .resize-handle.dragging span { border-color: var(--accent); }
+.resize-handle:focus-visible { outline: none; }
+body.resizing { user-select: none; cursor: ns-resize; }
+.card-photo { position: relative; aspect-ratio: 16/10; background: var(--line); }
+.card-photo img { width: 100%; height: 100%; object-fit: contain; display: block; background: #111; }
+.ph { width: 100%; height: 100%; display: grid; place-items: center; background: repeating-linear-gradient(135deg, var(--bg) 0 10px, var(--surface) 10px 20px); }
+.ph .board { border: 2px solid var(--muted); border-radius: 2px; display: grid; place-items: center; color: var(--muted); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; text-align: center; padding: 4px; background: var(--surface); }
+.nav { position: absolute; top: 50%; transform: translateY(-50%); width: 30px; height: 30px; border-radius: 50%; border: 0; background: rgba(0,0,0,.55); color: #fff; font-size: 16px; cursor: pointer; }
+.nav.prev { left: 8px; } .nav.next { right: 8px; }
+.count { position: absolute; right: 8px; bottom: 8px; background: rgba(0,0,0,.6); color: #fff; font-size: 11px; padding: 2px 7px; border-radius: 10px; }
+.card-body { padding: 12px 14px 14px; display: grid; gap: 10px; }
+.card-head { display: grid; gap: 4px; }
+.tag { font: 600 11px/1 var(--font-body); letter-spacing: .07em; text-transform: uppercase; color: var(--gc); }
+.card-head h3 { margin: 0; font: 600 18px/1.15 var(--font-display); text-wrap: balance; }
+.facing { justify-self: start; font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 10px; background: var(--bg); color: var(--muted); }
+.specs { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 12px; margin: 0; }
+.specs div { min-width: 0; }
+.specs dt { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .05em; }
+.specs dd { margin: 0; font-weight: 600; }
+.card-total { display: flex; justify-content: space-between; align-items: baseline; border-top: 1px solid var(--line); padding-top: 10px; }
+.card-total strong { font: 700 20px/1 var(--font-display); }
+.card-note { color: var(--muted); font-size: 11px; }
+.gmaps { font-weight: 600; color: var(--accent); text-decoration: none; }
+.gmaps:hover { text-decoration: underline; }
+.dist { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; background: var(--ink); color: var(--surface); border-radius: 8px; padding: 9px 12px; }
+.dist span { font-size: 12px; opacity: .8; }
+.dist strong { font: 700 22px/1 var(--font-display); white-space: nowrap; }
+.wh { display: grid; justify-items: center; }
+.wh-chip { background: #fff; border-radius: 7px; padding: 5px 7px; box-shadow: 0 2px 8px rgba(0,0,0,.45); border: 2px solid var(--brand); line-height: 0; }
+.wh-chip img { height: 22px; width: auto; display: block; }
+.wh-chip.wh-text { line-height: 22px; font: 700 13px/22px var(--font-display); color: var(--ink); white-space: nowrap; text-transform: uppercase; }
+.wh-tip { width: 0; height: 0; border-left: 7px solid transparent; border-right: 7px solid transparent; border-top: 8px solid var(--brand); }
+.ring-label { background: rgba(255,255,255,.92) !important; border: 0 !important; box-shadow: 0 1px 4px rgba(0,0,0,.3) !important; font: 700 12px/1 "Barlow", sans-serif !important; color: #142019 !important; padding: 4px 7px !important; }
+.ring-label::before { display: none; }
+.legend label { display: flex; align-items: center; gap: 8px; cursor: pointer; border-top: 1px solid var(--line); padding-top: 6px; }
+.legend .ring-key { width: 12px; height: 12px; border-radius: 50%; border: 2px dashed #fff; background: transparent; box-shadow: 0 0 0 1px rgba(0,0,0,.4); }
+.legend .wh-key { width: 12px; height: 12px; border-radius: 3px; background: #fff; border: 2px solid var(--brand); box-shadow: none; }
+
+/* Summary */
+.summary .wrap { display: flex; flex-wrap: wrap; gap: 12px 40px; padding-block: 18px 6px; align-items: flex-end; justify-content: space-between; }
+.summary h2 { margin: 0; font: 700 26px/1 var(--font-display); text-transform: uppercase; }
+.stats { display: flex; flex-wrap: wrap; gap: 12px 32px; }
+.stat { display: grid; gap: 2px; }
+.stat span { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .06em; }
+.stat b { font: 700 24px/1 var(--font-display); }
+
+/* Table */
+.table-sec .wrap { padding-block: 10px 32px; }
+.table-scroll { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
+table { width: 100%; border-collapse: collapse; min-width: 900px; }
+th, td { padding: 7px 10px; text-align: left; border-bottom: 1px solid var(--line); vertical-align: middle; }
+thead th { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 600; background: var(--bg); white-space: nowrap; }
+td.num, th.num { text-align: right; white-space: nowrap; }
+tr.group td { padding-block: 6px; background: var(--gs); font: 700 14px/1.2 var(--font-display); text-transform: uppercase; letter-spacing: .03em; color: var(--gc); }
+tr.group td small { font: 500 13px var(--font-body); text-transform: none; letter-spacing: 0; color: var(--muted); margin-left: 8px; }
+tbody tr.site { cursor: pointer; transition: background .12s; }
+tbody tr.site:hover, tbody tr.site.hl { background: var(--hl); }
+tbody tr.site:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.idx { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; color: #fff; font: 700 13px/1 var(--font-display); background: var(--gc); }
+tr.sub td { font-weight: 600; background: var(--bg); }
+tfoot td { font-weight: 700; font-size: 15px; border-bottom: 0; }
+tfoot td.num { font: 700 18px/1 var(--font-display); }
+.extra { color: var(--warn); font-weight: 600; }
+.notes { color: var(--muted); font-size: 13px; margin: 12px 0 0; display: grid; gap: 4px; }
+td a { color: var(--accent); font-weight: 600; text-decoration: none; white-space: nowrap; }
+td a:hover { text-decoration: underline; }
+.loc { font-weight: 600; }
+.meta { display: flex; flex-wrap: wrap; gap: 2px 10px; color: var(--muted); font-size: 12.5px; margin-top: 1px; }
+.meta a { font-weight: 500; font-size: 12.5px; }
+
+@media (max-width: 640px) {
+  .map-shell { height: 60vh; min-height: 360px; }
+  .legend { bottom: 22px; font-size: 12px; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+<style id="group-styles"></style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <div class="logo" id="logo"><div class="logo-slot">Company logo</div></div>
+    <div class="title">
+      <h1 id="plan-title">Billboard Plan</h1>
+      <p id="plan-sub"></p>
+    </div>
+  </div>
+</header>
+
+<section class="map-shell" aria-label="Map of billboard sites">
+  <div id="map"></div>
+  <div class="site-card" id="card" hidden></div>
+  <div class="resize-handle" id="resize" role="separator" aria-orientation="horizontal" aria-label="Drag to resize the map" tabindex="0" title="Drag to resize the map"><span></span></div>
+  <div class="map-ctrl" role="group" aria-label="Map view">
+    <button type="button" id="v-sat" aria-pressed="true">Satellite</button>
+    <button type="button" id="v-map" aria-pressed="false">Map</button>
+  </div>
+  <button type="button" class="fit-btn" id="fit">Show all sites</button>
+  <div class="legend" id="legend"></div>
+</section>
+
+<section class="summary">
+  <div class="wrap">
+    <h2>All billboard options</h2>
+    <div class="stats" id="stats"></div>
+  </div>
+</section>
+
+<section class="table-sec">
+  <div class="wrap">
+    <div class="table-scroll">
+      <table>
+        <thead><tr id="head-row"></tr></thead>
+        <tbody id="rows"></tbody>
+        <tfoot id="foot"></tfoot>
+      </table>
+    </div>
+    <div class="notes" id="notes"></div>
+  </div>
+</section>
+
+<!-- Plan data, injected at build time (see packages/template/README.md for its shape). -->
+<script id="plan-data" type="application/json">__PLAN_DATA__</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+/* ===== Plan data ===== */
+let PLAN;
+try { PLAN = JSON.parse(document.getElementById("plan-data").textContent); }
+catch (err) {
+  document.getElementById("rows").innerHTML = "";
+  document.querySelector(".table-sec .wrap").insertAdjacentHTML("afterbegin", '<p style="padding:24px 0">This page has no plan data. Build it with Billboard Planner.</p>');
+  throw err;
+}
+
+const LOCALE = PLAN.locale || "en-IN";
+const money = new Intl.NumberFormat(LOCALE, { style: "currency", currency: PLAN.currency || "INR", minimumFractionDigits: 0, maximumFractionDigits: 0 });
+const cur = n => money.format(n);
+const num = n => Number(n).toLocaleString(LOCALE);
+const esc = t => String(t).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const okColor = c => typeof c === "string" && CSS.supports("color", c);
+const gcls = id => "g-" + String(id).replace(/[^\w-]/g, "_");
+
+const GROUPS = PLAN.groups || [];
+const GROUP = Object.fromEntries(GROUPS.map(g => [g.id, g]));
+const SITES = (PLAN.sites || []).map(s => ({ qty: 1, days: 30, ...s, photos: s.photos || [] }));
+const BASES = PLAN.bases || [];
+const BASE = BASES.find(b => b.distanceFrom) || null;       // distances are measured from this base
+const BASE_LABEL = BASE ? (BASE.label || "base") : "";
+const RINGS = PLAN.rings && PLAN.rings.center && (PLAN.rings.radiiKm || []).length ? PLAN.rings : null;
+const DAYS = SITES.length && SITES.every(s => s.days === SITES[0].days) ? SITES[0].days : null;
+const TOTAL_LABEL = DAYS ? `Total, ${DAYS} days` : "Total";
+
+/* Costs: printing is a number, or "extra" / "tbc" when it is not known yet. Rent is per 30 days. */
+const area = s => s.widthFt * s.heightFt * s.qty;
+const hasPrint = s => typeof s.printing === "number";
+const printLabel = s => s.printing === "tbc" ? "TBC" : "Extra";
+const rent = s => Math.round(s.ratePerMonth * s.days / 30);
+const total = s => rent(s) + (hasPrint(s) ? s.printing : 0);
+const gm = s => `https://www.google.com/maps?q=${s.lat},${s.lng}`;
+const kmTo = (a, b) => { const R = 6371, r = x => x * Math.PI / 180, dLa = r(b.lat - a.lat), dLo = r(b.lng - a.lng);
+  const h = Math.sin(dLa / 2) ** 2 + Math.cos(r(a.lat)) * Math.cos(r(b.lat)) * Math.sin(dLo / 2) ** 2; return 2 * R * Math.asin(Math.sqrt(h)); };
+const baseKm = s => kmTo(BASE, s).toFixed(1);
+const noteText = s => {
+  const parts = [];
+  if (!hasPrint(s)) parts.push(s.printing === "tbc" ? "*Printing & mounting to be confirmed." : "*Printing & mounting extra.");
+  if (s.taxNote) parts.push(/[.!]$/.test(s.taxNote) ? s.taxNote : s.taxNote + ".");
+  return parts.join(" ");
+};
+const listJoin = a => a.length < 2 ? a.join("") : a.slice(0, -1).join(", ") + " & " + a[a.length - 1];
+
+/* Theme from the plan */
+const root = document.documentElement.style;
+if (PLAN.brand && okColor(PLAN.brand.primary)) root.setProperty("--brand", PLAN.brand.primary);
+const accent = (PLAN.brand && okColor(PLAN.brand.accent) && PLAN.brand.accent) || (GROUPS[0] && okColor(GROUPS[0].color) && GROUPS[0].color);
+if (accent) root.setProperty("--accent", accent);
+document.getElementById("group-styles").textContent = GROUPS.map(g => {
+  const c = okColor(g.color) ? g.color : "#5d6b63";
+  const soft = okColor(g.soft) ? g.soft : `color-mix(in srgb, ${c} 12%, #fff)`;
+  return `.${gcls(g.id)} { --gc: ${c}; --gs: ${soft}; }`;
+}).join("\n");
+
+/* Header */
+document.title = PLAN.title || "Billboard Plan";
+document.getElementById("plan-title").textContent = PLAN.title || "Billboard Plan";
+document.getElementById("plan-sub").innerHTML = esc(PLAN.subtitle || "").replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+if (PLAN.logo) document.getElementById("logo").innerHTML = `<img src="${esc(PLAN.logo)}" alt="Company logo">`;
+
+/* Legend */
+const ringPlace = RINGS ? (RINGS.center.label || "centre") : "";
+document.getElementById("legend").innerHTML =
+  GROUPS.map(g => `<span><i class="swatch ${gcls(g.id)}"></i>${esc(g.name)}</span>`).join("") +
+  BASES.map(b => `<span><i class="wh-key"></i>${esc(b.legendLabel || b.name)}</span>`).join("") +
+  (RINGS ? `<label for="rings"><input type="checkbox" id="rings"${RINGS.visible === false ? "" : " checked"}> ${esc(listJoin(RINGS.radiiKm.map(km => km + " km")))} from ${esc(ringPlace)}</label>` : "");
+
+/* Map */
+const map = L.map("map", { zoomControl: true, scrollWheelZoom: true });
+const ESRI = "https://server.arcgisonline.com/ArcGIS/rest/services/";
+const PROVIDERS = {
+  "esri-imagery": () => L.layerGroup([
+    L.tileLayer(ESRI + "World_Imagery/MapServer/tile/{z}/{y}/{x}", { maxZoom: 19, attribution: "Imagery © Esri, Maxar, Earthstar Geographics" }),
+    L.tileLayer(ESRI + "Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}", { maxZoom: 19 }),
+    L.tileLayer(ESRI + "Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}", { maxZoom: 19, opacity: .7 })
+  ]),
+  "esri-street": () => L.tileLayer(ESRI + "World_Street_Map/MapServer/tile/{z}/{y}/{x}", { maxZoom: 19, attribution: "Map © Esri, HERE, Garmin, OpenStreetMap contributors" })
+};
+// A provider is a built-in name or a custom { url, attribution, maxZoom }.
+const tiles = (p, fallback) => p && typeof p === "object" && p.url
+  ? L.tileLayer(p.url, { maxZoom: p.maxZoom || 19, attribution: p.attribution || "" })
+  : (PROVIDERS[p] || PROVIDERS[fallback])();
+const prov = (PLAN.map && PLAN.map.providers) || {};
+const sat = tiles(prov.satellite, "esri-imagery");
+const road = tiles(prov.road, "esri-street");
+
+const bSat = document.getElementById("v-sat"), bMap = document.getElementById("v-map");
+function setView(isSat) {
+  if (isSat) { map.removeLayer(road); sat.addTo(map); } else { map.removeLayer(sat); road.addTo(map); }
+  bSat.setAttribute("aria-pressed", isSat); bMap.setAttribute("aria-pressed", !isSat);
+}
+setView(!(PLAN.map && PLAN.map.defaultView === "road"));
+bSat.onclick = () => setView(true);
+bMap.onclick = () => setView(false);
+
+const bounds = L.latLngBounds(SITES.map(s => [s.lat, s.lng]).concat(BASES.map(b => [b.lat, b.lng])));
+
+if (RINGS) {
+  const c0 = RINGS.center;
+  const rings = L.layerGroup(RINGS.radiiKm.map(km => {
+    const c = L.circle([c0.lat, c0.lng], { radius: km * 1000, color: "#ffffff", weight: 2.5, opacity: .95, dashArray: "6 8", fill: false, interactive: false });
+    const top = L.latLng(c0.lat + km / 111.2, c0.lng);
+    return L.layerGroup([c, L.tooltip({ permanent: true, direction: "center", className: "ring-label" }).setLatLng(top).setContent(esc(km + " km from " + ringPlace))]);
+  }));
+  if (RINGS.visible !== false) rings.addTo(map);
+  document.getElementById("rings").onchange = e => e.target.checked ? rings.addTo(map) : map.removeLayer(rings);
+}
+
+BASES.forEach(b => {
+  const chip = b.markerLogo
+    ? `<div class="wh-chip"><img src="${esc(b.markerLogo)}" alt="${esc(b.legendLabel || b.name)}"></div>`
+    : `<div class="wh-chip wh-text">${esc(b.name)}</div>`;
+  const icon = L.divIcon({ className: "", html: `<div class="wh">${chip}<div class="wh-tip"></div></div>`, iconSize: [96, 44], iconAnchor: [48, 44] });
+  L.marker([b.lat, b.lng], { icon, zIndexOffset: 1000, title: b.name }).addTo(map)
+    .bindTooltip(`<b>${esc(b.name)}</b><br>${b.lat.toFixed(6)}, ${b.lng.toFixed(6)}`, { direction: "top", offset: [0, -46] });
+});
+const fitAll = () => bounds.isValid() ? map.fitBounds(bounds, { padding: [60, 60] }) : map.setView([20, 78], 4);
+fitAll();
+document.getElementById("fit").onclick = () => { hideCard(); fitAll(); };
+
+/* Card */
+function photoHTML(s, i) {
+  if (!s.photos.length) {
+    const r = s.widthFt / s.heightFt, bw = Math.min(170, 90 * r), bh = bw / r;
+    return `<div class="ph"><div class="board" style="width:${bw}px;height:${bh}px">Photo<br>coming soon</div></div>`;
+  }
+  const n = s.photos.length, k = ((i % n) + n) % n;
+  let h = `<img src="${esc(s.photos[k])}" alt="Billboard ${esc(s.location)}, photo ${k + 1}">`;
+  if (n > 1) h += `<button class="nav prev" data-d="-1" aria-label="Previous photo">‹</button><button class="nav next" data-d="1" aria-label="Next photo">›</button><span class="count">${k + 1} / ${n}</span>`;
+  return h;
+}
+function cardHTML(s, n) {
+  const g = GROUP[s.group] || { name: "" }, note = noteText(s);
+  return `
+  <div class="card-photo" data-i="0">${photoHTML(s, 0)}</div>
+  <div class="card-body">
+    <div class="card-head">
+      <span class="tag ${gcls(s.group)}">${n} · ${esc(g.name)}</span>
+      <h3>${esc(s.location)}</h3>
+      ${s.facing ? `<span class="facing">Facing ${esc(s.facing)}</span>` : ""}
+    </div>
+    ${BASE ? `<div class="dist"><span>From our ${esc(BASE_LABEL)}<br>straight-line distance</span><strong>${baseKm(s)} km</strong></div>` : ""}
+    <dl class="specs">
+      <div><dt>Media vehicle</dt><dd>${esc(s.mediaVehicle || "—")}</dd></div>
+      <div><dt>Coordinates</dt><dd>${s.lat.toFixed(6)}, ${s.lng.toFixed(6)}</dd></div>
+      <div><dt>Size</dt><dd>${s.widthFt} × ${s.heightFt} ft</dd></div>
+      <div><dt>Area</dt><dd>${num(area(s))} sq ft</dd></div>
+      <div><dt>Rate / month</dt><dd>${cur(s.ratePerMonth)}</dd></div>
+      <div><dt>Printing & mounting</dt><dd>${hasPrint(s) ? cur(s.printing) : `<span class="extra">${printLabel(s)}</span>`}</dd></div>
+      <div><dt>Illumination</dt><dd>${esc(s.illumination || "—")}</dd></div>
+      <div><dt>Duration</dt><dd>${s.days} days</dd></div>
+    </dl>
+    <div class="card-total"><span>Total, ${s.days} days</span><strong>${cur(total(s))}${hasPrint(s) ? "" : "*"}</strong></div>
+    ${note ? `<span class="card-note">${esc(note)}</span>` : ""}
+    <a class="gmaps" href="${gm(s)}" target="_blank" rel="noopener">Open in Google Maps ↗</a>
+  </div>`;
+}
+
+/* Markers + hover */
+const markers = [];
+let closeT = null;
+const rowsEl = document.getElementById("rows");
+
+const cardEl = document.getElementById("card"), shell = document.querySelector(".map-shell");
+let openN = 0;
+
+function placeCard() {
+  if (!openN) return;
+  const s = SITES[openN - 1], p = map.latLngToContainerPoint([s.lat, s.lng]);
+  const W = shell.clientWidth, H = shell.clientHeight, w = cardEl.offsetWidth, h = cardEl.offsetHeight, gap = 22, pad = 8;
+  let x = p.x + gap;
+  if (x + w > W - pad) x = p.x - gap - w;          // flip to the left of the pin
+  if (x < pad) x = Math.max(pad, (W - w) / 2);     // narrow screens: centre it
+  let y = p.y - 15 - h / 2;
+  y = Math.min(Math.max(pad, y), Math.max(pad, H - h - pad));
+  cardEl.style.transform = `translate(${Math.round(x)}px, ${Math.round(y)}px)`;
+}
+function showCard(n) {
+  clearTimeout(closeT);
+  if (openN === n) return;
+  if (openN) highlight(openN, false);
+  openN = n;
+  const s = SITES[n - 1];
+  cardEl.innerHTML = cardHTML(s, n);
+  cardEl.style.maxHeight = (shell.clientHeight - 16) + "px";
+  cardEl.hidden = false;
+  placeCard();
+  cardEl.querySelectorAll("img").forEach(im => im.complete || (im.onload = placeCard));
+  highlight(n, true);
+}
+function hideCard() { clearTimeout(closeT); if (!openN) return; highlight(openN, false); openN = 0; cardEl.hidden = true; }
+const hideSoon = () => { clearTimeout(closeT); closeT = setTimeout(hideCard, 300); };
+
+cardEl.addEventListener("mouseenter", () => clearTimeout(closeT));
+cardEl.addEventListener("mouseleave", hideSoon);
+cardEl.addEventListener("click", ev => {
+  const b = ev.target.closest(".nav"); if (!b || !openN) return;
+  const box = cardEl.querySelector(".card-photo"), k = +box.dataset.i + +b.dataset.d;
+  box.dataset.i = k; box.innerHTML = photoHTML(SITES[openN - 1], k);
+});
+L.DomEvent.disableClickPropagation(cardEl);
+L.DomEvent.disableScrollPropagation(cardEl);
+map.on("move zoom", placeCard);
+map.on("click", hideCard);
+
+SITES.forEach((s, i) => {
+  const n = i + 1;
+  const icon = L.divIcon({ className: "", html: `<div class="pin ${gcls(s.group)}" id="pin-${n}"><b>${n}</b></div>`, iconSize: [30, 30], iconAnchor: [15, 30] });
+  const m = L.marker([s.lat, s.lng], { icon, title: s.location, riseOnHover: true }).addTo(map);
+  m.on("mouseover", () => showCard(n));
+  m.on("mouseout", hideSoon);
+  m.on("click", () => showCard(n));
+  markers.push(m);
+});
+
+function highlight(n, on) {
+  const p = document.getElementById("pin-" + n); if (p) p.classList.toggle("active", on);
+  const r = document.getElementById("row-" + n); if (r) r.classList.toggle("hl", on);
+}
+
+/* Table */
+const COLS = 8 + (BASE ? 1 : 0);
+document.getElementById("head-row").innerHTML =
+  `<th>#</th><th>Location</th><th class="num">Size (ft)</th><th class="num">Area (sq ft)</th><th>Illum.</th>
+  <th class="num">Rate / month</th><th class="num">Printing &amp; mounting</th><th class="num">${esc(TOTAL_LABEL)}</th>` +
+  (BASE ? `<th class="num">From ${esc(BASE_LABEL)}</th>` : "");
+const tail = BASE ? "<td></td>" : "";
+let html = "", grand = { rate: 0, print: 0, total: 0, area: 0, extra: false };
+GROUPS.forEach(g => {
+  const list = SITES.map((s, i) => [s, i + 1]).filter(([s]) => s.group === g.id);
+  if (!list.length) return;
+  const sub = { rate: 0, print: 0, total: 0, area: 0, extra: false };
+  html += `<tr class="group ${gcls(g.id)}"><td colspan="${COLS}">${esc(g.name)}<small>${list.length} site${list.length > 1 ? "s" : ""}</small></td></tr>`;
+  list.forEach(([s, n]) => {
+    sub.rate += s.ratePerMonth; sub.print += hasPrint(s) ? s.printing : 0; sub.total += total(s); sub.area += area(s); if (!hasPrint(s)) sub.extra = true;
+    html += `<tr class="site" id="row-${n}" data-n="${n}" tabindex="0">
+      <td><span class="idx ${gcls(g.id)}">${n}</span></td>
+      <td><div class="loc">${esc(s.location)}</div>
+        <div class="meta"><span>${esc(s.mediaVehicle || "—")}${s.qty > 1 ? " × " + s.qty : ""}</span>${s.facing ? `<span>Facing ${esc(s.facing)}</span>` : ""}<a href="${gm(s)}" target="_blank" rel="noopener">${s.lat.toFixed(6)}, ${s.lng.toFixed(6)} ↗</a></div></td>
+      <td class="num">${s.widthFt} × ${s.heightFt}</td>
+      <td class="num">${num(area(s))}</td>
+      <td>${esc(s.illumination || "—")}</td>
+      <td class="num">${cur(s.ratePerMonth)}</td>
+      <td class="num">${hasPrint(s) ? cur(s.printing) : `<span class="extra">${printLabel(s)}</span>`}</td>
+      <td class="num"><b>${cur(total(s))}${hasPrint(s) ? "" : "*"}</b></td>
+      ${BASE ? `<td class="num">${baseKm(s)} km</td>` : ""}
+    </tr>`;
+  });
+  html += `<tr class="sub"><td></td><td>Subtotal</td><td></td><td class="num">${num(sub.area)}</td><td></td>
+    <td class="num">${cur(sub.rate)}</td><td class="num">${cur(sub.print)}${sub.extra ? " + extra" : ""}</td><td class="num">${cur(sub.total)}${sub.extra ? "*" : ""}</td>${tail}</tr>`;
+  grand.rate += sub.rate; grand.print += sub.print; grand.total += sub.total; grand.area += sub.area; grand.extra = grand.extra || sub.extra;
+});
+rowsEl.innerHTML = html;
+const star = grand.extra ? "*" : "";
+document.getElementById("foot").innerHTML = `<tr><td></td><td>Grand total · ${SITES.length} sites</td><td></td><td class="num">${num(grand.area)}</td><td></td>
+  <td class="num">${cur(grand.rate)}</td><td class="num">${cur(grand.print)}${grand.extra ? " + extra" : ""}</td><td class="num">${cur(grand.total)}${star}</td>${tail}</tr>`;
+
+document.getElementById("stats").innerHTML = [
+  ["Sites", SITES.length],
+  ["Total area", num(grand.area) + " sq ft"],
+  ["Monthly rent", cur(grand.rate)],
+  [TOTAL_LABEL, cur(grand.total) + star]
+].map(([k, v]) => `<div class="stat"><span>${esc(k)}</span><b>${v}</b></div>`).join("");
+
+document.getElementById("notes").innerHTML = (PLAN.notes || []).map(t => `<span>${esc(t)}</span>`).join("");
+
+rowsEl.querySelectorAll("tr.site").forEach(r => {
+  const n = +r.dataset.n, m = markers[n - 1];
+  const go = () => {
+    document.querySelector(".map-shell").scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
+    map.flyTo(m.getLatLng(), 17, { duration: .8 });
+    hideCard();
+    map.once("moveend", () => showCard(n));
+  };
+  r.addEventListener("click", e => { if (!e.target.closest("a")) go(); });
+  r.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); go(); } });
+  r.addEventListener("mouseenter", () => document.getElementById("pin-" + n).classList.add("active"));
+  r.addEventListener("mouseleave", () => { if (openN !== n) document.getElementById("pin-" + n).classList.remove("active"); });
+});
+
+/* Resizable map */
+(() => {
+  const h = document.getElementById("resize"), MIN = 300;
+  const setH = px => {
+    const v = Math.max(MIN, Math.round(px));
+    shell.style.height = v + "px"; shell.style.maxHeight = "none";
+    map.invalidateSize({ pan: false });
+    if (openN) { cardEl.style.maxHeight = (shell.clientHeight - 16) + "px"; placeCard(); }
+  };
+  let startY = 0, startH = 0;
+  h.addEventListener("pointerdown", e => {
+    e.preventDefault(); h.setPointerCapture(e.pointerId);
+    startY = e.clientY; startH = shell.offsetHeight;
+    h.classList.add("dragging"); document.body.classList.add("resizing");
+  });
+  h.addEventListener("pointermove", e => { if (h.classList.contains("dragging")) setH(startH + e.clientY - startY); });
+  const end = () => { h.classList.remove("dragging"); document.body.classList.remove("resizing"); };
+  h.addEventListener("pointerup", end); h.addEventListener("pointercancel", end);
+  h.addEventListener("dblclick", () => { shell.style.height = ""; shell.style.maxHeight = ""; map.invalidateSize({ pan: false }); placeCard(); });
+  h.addEventListener("keydown", e => {
+    if (e.key === "ArrowDown") { e.preventDefault(); setH(shell.offsetHeight + 40); }
+    if (e.key === "ArrowUp") { e.preventDefault(); setH(shell.offsetHeight - 40); }
+  });
+})();
+</script>
+</body>
+</html>
