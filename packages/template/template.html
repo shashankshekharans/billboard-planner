@@ -157,21 +157,26 @@ td a:hover { text-decoration: underline; }
   .title { text-align: left; }
   .title h1 { font-size: 26px; }
 
-  /* Table: each site becomes a card */
+  /* Table: each site becomes a compact card (number, name and total on top; figures in one wrapped line) */
   table { min-width: 0; }
   .table-scroll { overflow: visible; }
   thead { display: none; }
   table, tbody, tfoot { display: block; }
   tr.group, tr.group td { display: block; }
-  tr.site { display: grid; grid-template-columns: 30px 1fr 1fr; gap: 6px 12px; padding: 12px 12px 12px 10px; border-bottom: 1px solid var(--line); }
-  tr.site td { border: 0; padding: 0; text-align: left; white-space: normal; }
-  tr.site td.c-idx { grid-row: 1; grid-column: 1; }
-  tr.site td.c-loc { grid-row: 1; grid-column: 2 / -1; }
-  tr.site td:nth-child(n+3):nth-child(odd) { grid-column: 2; }
-  tr.site td:nth-child(n+3):nth-child(even) { grid-column: 3; }
-  td[data-label]::before { content: attr(data-label); display: block; font-size: 11px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); }
+  tr.site { position: relative; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 14px; padding: 12px 12px 12px 46px; border-bottom: 1px solid var(--line); }
+  tr.site td { border: 0; padding: 0; text-align: left; white-space: nowrap; font-size: 13.5px; }
+  tr.site td.c-idx { position: absolute; left: 12px; top: 12px; }
+  tr.site td.c-loc { flex: 1 1 calc(100% - 130px); min-width: 0; white-space: normal; order: -2; }   /* name and total share line 1; figures wrap below */
+  tr.site td.c-total { flex: 0 0 auto; order: -1; text-align: right; font-size: 15px; }
+  tr.site td.c-total::before { content: attr(data-label); display: block; font-size: 10.5px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
+  tr.site td:not(.c-idx):not(.c-loc):not(.c-total) { order: 1; }
+  tr.site td[data-short]::before { content: attr(data-short) " "; color: var(--muted); font-size: 12px; }
+  tr.site td[data-unit]::after { content: " " attr(data-unit); }
+  tr.site .meta { font-size: 12.5px; }
+  tr.sub td[data-label]::before, tfoot td[data-label]::before { content: attr(data-label); display: block; font-size: 11px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); }
   tr.sub, tfoot tr { display: flex; flex-wrap: wrap; gap: 6px 18px; padding: 10px 12px; border-bottom: 1px solid var(--line); }
-  tr.sub td, tfoot td { border: 0; padding: 0; text-align: left; }
+  tr.sub { background: var(--bg); }
+  tr.sub td, tfoot td, tr.sub td.num, tfoot td.num { border: 0; padding: 0; text-align: left; background: transparent; }
   tr.sub td:empty, tfoot td:empty { display: none; }
   tr.sub td.c-loc, tfoot td.c-loc { flex-basis: 100%; }
   tfoot td.num { font-size: 17px; }
@@ -511,13 +516,13 @@ GROUPS.forEach(g => {
       <td class="c-idx"><span class="idx ${gcls(g.id)}">${n}</span></td>
       <td class="c-loc"><div class="loc">${esc(s.location)}</div>
         <div class="meta"><span>${esc(s.mediaVehicle || "—")}${s.qty > 1 ? " × " + s.qty : ""}</span>${s.facing ? `<span>Facing ${esc(s.facing)}</span>` : ""}<a href="${gm(s)}" target="_blank" rel="noopener">${s.lat.toFixed(6)}, ${s.lng.toFixed(6)} ↗</a></div></td>
-      <td class="num" data-label="Size (ft)">${s.widthFt} × ${s.heightFt}</td>
-      <td class="num" data-label="Area (sq ft)">${num(area(s))}</td>
-      <td data-label="Illum.">${esc(s.illumination || "—")}</td>
-      <td class="num" data-label="Rate / month">${cur(s.ratePerMonth)}</td>
-      <td class="num" data-label="Printing &amp; mounting">${hasPrint(s) ? cur(s.printing) : `<span class="extra">${printLabel(s)}</span>`}</td>
+      <td class="num" data-label="Size (ft)" data-short="Size" data-unit="ft">${s.widthFt} × ${s.heightFt}</td>
+      <td class="num" data-label="Area (sq ft)" data-short="Area" data-unit="sq ft">${num(area(s))}</td>
+      <td data-label="Illum." data-short="Illum.">${esc(s.illumination || "—")}</td>
+      <td class="num" data-label="Rate / month" data-short="Rate / month">${cur(s.ratePerMonth)}</td>
+      <td class="num" data-label="Printing &amp; mounting" data-short="Printing">${hasPrint(s) ? cur(s.printing) : `<span class="extra">${printLabel(s)}</span>`}</td>
       <td class="num c-total" data-label="${esc(TOTAL_LABEL)}"><b>${cur(total(s))}${hasPrint(s) ? "" : "*"}</b></td>
-      ${BASE ? `<td class="num" data-label="From ${esc(BASE_LABEL)}">${baseKm(s)} km</td>` : ""}
+      ${BASE ? `<td class="num c-dist" data-label="From ${esc(BASE_LABEL)}" data-short="From ${esc(BASE_LABEL)}">${baseKm(s)} km</td>` : ""}
     </tr>`;
   });
   html += `<tr class="sub"><td></td><td class="c-loc">Subtotal</td><td></td><td class="num" data-label="Area (sq ft)">${num(sub.area)}</td><td></td>

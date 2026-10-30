@@ -77,7 +77,12 @@ test.describe("generated page on a phone", () => {
     await expect(page.locator("thead")).toBeHidden();
     const row = page.locator("#row-6");
     await expect(row.locator('td[data-label="Rate / month"]')).toContainText("₹72,000");
-    expect(await row.evaluate(el => getComputedStyle(el).display)).toBe("grid");
+    expect(await row.evaluate(el => getComputedStyle(el).display)).toBe("flex");
+    // Compact: name and total share the first line, and a card is well under half the screen tall
+    const name = (await row.locator(".loc").boundingBox())!, total = (await row.locator(".c-total").boundingBox())!;
+    expect(Math.abs(name.y - total.y)).toBeLessThan(20);
+    expect((await row.boundingBox())!.height).toBeLessThan(220);
+    await expect(row.locator('td[data-label="Size (ft)"]')).toHaveText("80 × 30");   // units are added by CSS on phones only
     await row.locator(".loc").tap();
     await expect(page.locator("#card")).toContainText("Delhi Road – Dharuheda");
     expect(await zoomOf(page)).toBe(17);
