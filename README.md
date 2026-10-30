@@ -23,22 +23,28 @@ Marketing teams, media planners and agencies who buy outdoor (OOH) media: hoardi
 
 ---
 
-> **Status: early development.** The repository layout and the AAJ Swift example are in place; the build tool and browser app are not built yet. Until then, open [`examples/aaj-swift-nh48/reference/billboard-plan-example.html`](examples/aaj-swift-nh48/reference/billboard-plan-example.html) in a browser to see what the tool will make.
+> **Status: early development.** The build command works from this repository (below); the browser app is not built yet.
 
 <!-- TODO: screenshot of the AAJ Swift example and a "Try the example" link to GitHub Pages. -->
 
 ## Quick start
 
-_Coming soon._ The planned flow:
+1. Fill in the spreadsheet template [`templates/sites-template.xlsx`](templates/sites-template.xlsx), use the vendor's own sheet, or write a `plan.yaml` (see [the example](examples/aaj-swift-nh48/plan.yaml)).
+2. Put site photos in a `photos/` folder next to it, named by site ID (`1.jpg`, `6a.jpg`, `6b.jpg`…), or list them in the Photos column.
+3. Add your logo and point to it from the plan.
+4. Build one self-contained page:
 
-1. Fill in the spreadsheet template (`templates/sites-template.xlsx`) or write a `plan.yaml` (see [the example](examples/aaj-swift-nh48/plan.yaml)).
-2. Put site photos in `photos/`, named by site ID (`1.jpg`, `6a.jpg`, `6b.jpg`…).
-3. Add your logo.
-4. Build one self-contained `plan.html`, either from the browser app or with `npx billboard-planner build plan.yaml`.
+```bash
+npm install
+npm run build
+npm run plan -- build path/to/sites.xlsx      # writes path/to/sites.html
+```
+
+Once published to npm this will be `npx billboard-planner build sites.xlsx`. See [packages/cli](packages/cli/README.md) for the spreadsheet columns and options.
 
 ## Plan file
 
-_Coming soon._ [`examples/aaj-swift-nh48/plan.yaml`](examples/aaj-swift-nh48/plan.yaml) shows every field in use.
+[`examples/aaj-swift-nh48/plan.yaml`](examples/aaj-swift-nh48/plan.yaml) shows every field in use; [packages/core](packages/core/README.md) lists the rules.
 
 ## Map tiles and licensing
 

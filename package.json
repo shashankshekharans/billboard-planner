@@ -15,10 +15,11 @@
     "packages/*"
   ],
   "scripts": {
-    "build": "npm run build --workspaces --if-present",
+    "build": "npm run build -w @billboard-planner/core && npm run build -w @billboard-planner/cli",
     "test": "npm test --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",
-    "build:example": "npm run build:example -w @billboard-planner/template"
+    "build:example": "npm run build:example -w @billboard-planner/template",
+    "plan": "node packages/cli/dist/cli.js"
   },
   "devDependencies": {
     "@types/node": "24.19.2",

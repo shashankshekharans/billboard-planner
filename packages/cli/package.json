@@ -3,5 +3,37 @@
   "version": "0.0.0",
   "private": true,
   "description": "The build command: reads a plan file and photos, writes one self-contained plan.html.",
-  "license": "MIT"
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "billboard-planner": "dist/cli.js"
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.test.json"
+  },
+  "dependencies": {
+    "@billboard-planner/core": "0.0.0",
+    "@billboard-planner/template": "0.0.0",
+    "commander": "15.0.0",
+    "papaparse": "5.7.0",
+    "sharp": "0.35.5",
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz",
+    "yaml": "2.9.1"
+  },
+  "devDependencies": {
+    "@types/papaparse": "5.5.2"
+  }
 }

@@ -22,3 +22,6 @@ desktop.ini
 .idea/
 *.log
 .claude/settings.local.json
+
+# Pages built from the bundled examples (rebuild with npm run plan -- build …)
+examples/*/plan.html

@@ -6,11 +6,19 @@
   "license": "MIT",
   "type": "module",
   "main": "index.js",
+  "types": "index.d.ts",
   "exports": {
-    ".": "./index.js",
+    ".": {
+      "types": "./index.d.ts",
+      "default": "./index.js"
+    },
     "./template.html": "./template.html"
   },
-  "files": ["index.js", "template.html"],
+  "files": [
+    "index.js",
+    "index.d.ts",
+    "template.html"
+  ],
   "scripts": {
     "test": "node --test \"test/**/*.test.js\"",
     "build:example": "node scripts/build-example.mjs"
