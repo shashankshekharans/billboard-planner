@@ -19,9 +19,12 @@
     "test": "npm test --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "build:example": "npm run build && node packages/cli/dist/cli.js build examples/aaj-swift-nh48/plan.yaml",
-    "plan": "node packages/cli/dist/cli.js"
+    "plan": "node packages/cli/dist/cli.js",
+    "build:app": "npm run build -w @billboard-planner/app",
+    "dev": "npm run dev -w @billboard-planner/app"
   },
   "devDependencies": {
+    "@playwright/test": "1.64.1",
     "@types/node": "24.19.2",
     "typescript": "7.0.2",
     "vitest": "5.0.5"

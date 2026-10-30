@@ -117,3 +117,17 @@ describe("resolvePlan: warnings", () => {
     expect(warnings).toEqual(['Group "B" has no sites.']);
   });
 });
+
+describe("planToFile", () => {
+  it("round-trips: resolvePlan(planToFile(data)) gives the same data", async () => {
+    const { planToFile } = await import("./tofile.js");
+    const { plan } = resolvePlan(exampleYaml());
+    expect(resolvePlan(planToFile(plan)).plan).toEqual(plan);
+    expect(resolvePlan(planToFile({ ...fixture, theme: "light" })).plan).toEqual({ ...fixture, theme: "light" });
+  });
+  it("round-trips a custom tile provider and no rings", async () => {
+    const { planToFile } = await import("./tofile.js");
+    const { plan } = resolvePlan(minimal({ map: { providers: { road: { url: "https://t.example.com/{z}/{x}/{y}.png", max_zoom: 18 } } } }));
+    expect(resolvePlan(planToFile(plan)).plan).toEqual(plan);
+  });
+});

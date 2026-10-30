@@ -2,7 +2,7 @@
 // resolvePlan() turns a plan.yaml / plan.json into this shape.
 
 export type Printing = number | "extra" | "tbc";
-export type TileProvider = string | { url: string; attribution?: string; maxZoom?: number };
+export type TileProvider = "esri-imagery" | "esri-street" | { url: string; attribution?: string; maxZoom?: number };
 
 export interface SiteData {
   id: string;

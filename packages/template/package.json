@@ -12,11 +12,17 @@
       "types": "./index.d.ts",
       "default": "./index.js"
     },
+    "./render": {
+      "types": "./render.d.ts",
+      "default": "./render.js"
+    },
     "./template.html": "./template.html"
   },
   "files": [
     "index.js",
     "index.d.ts",
+    "render.js",
+    "render.d.ts",
     "template.html"
   ],
   "scripts": {

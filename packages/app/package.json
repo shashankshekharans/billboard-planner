@@ -2,6 +2,27 @@
   "name": "@billboard-planner/app",
   "version": "0.0.0",
   "private": true,
-  "description": "Browser app: start screen, bundled example viewer and plan editor (deployed to GitHub Pages).",
-  "license": "MIT"
+  "description": "Browser app: start screen, bundled AAJ Swift example, plan editor and HTML export (GitHub Pages).",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "copy-assets": "node scripts/copy-assets.mjs",
+    "dev": "npm run copy-assets && vite",
+    "build": "npm run copy-assets && vite build",
+    "preview": "vite preview --port 4173 --strictPort",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "idb-keyval": "6.3.0",
+    "papaparse": "5.7.0",
+    "preact": "10.29.8",
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz",
+    "yaml": "2.9.1"
+  },
+  "devDependencies": {
+    "@babel/core": "7.29.7",
+    "@preact/preset-vite": "2.10.6",
+    "@types/papaparse": "5.5.2",
+    "vite": "8.3.4"
+  }
 }
