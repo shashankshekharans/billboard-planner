@@ -66,6 +66,8 @@ header.top .wrap { display: flex; align-items: center; justify-content: space-be
 .pin b { transform: rotate(45deg); color: var(--gb, #fff); font: 700 14px/1 var(--font-display); }
 .pin::before { content: ""; position: absolute; inset: -9px; border-radius: 50%; }   /* bigger tap area, invisible */
 .pin.active { transform: rotate(-45deg) scale(1.25); }
+/* Group of overlapping pins (phones): count in a disc; tap to zoom in */
+.cluster { width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; background: var(--ink); color: #fff; border: 3px solid #fff; box-shadow: 0 0 0 3px var(--gc, var(--accent)), 0 2px 8px rgba(0,0,0,.5); font: 700 16px/1 var(--font-display); cursor: pointer; }
 
 /* Hover card */
 .site-card { position: absolute; z-index: 700; left: 0; top: 0; width: 340px; max-width: calc(100% - 16px); overflow: auto; background: var(--surface); color: var(--ink); border-radius: 10px; box-shadow: 0 8px 28px rgba(0,0,0,.4); font-size: 13px; line-height: 1.4; }
@@ -480,10 +482,11 @@ function ringState() {
 function drawRings() {
   const { radii, centre } = ringState();
   ringLayer.clearLayers();
-  ringCircles = radii.map(km => {
+  ringCircles = radii.map((km, i) => {
     const c = L.circle([centre.lat, centre.lng], { radius: km * 1000, color: "#ffffff", weight: 2.5, opacity: .95, dashArray: "6 8", fill: false, interactive: false });
-    const top = L.latLng(centre.lat + km / 111.2, centre.lng);
-    L.layerGroup([c, L.tooltip({ permanent: true, direction: "center", className: "ring-label" }).setLatLng(top).setContent(esc(km + " km from " + centre.name))]).addTo(ringLayer);
+    // label on the circle's west side: the top meets the map controls on phones, the bottom often meets the sites
+    const west = L.latLng(centre.lat, centre.lng - km / (111.32 * Math.cos(centre.lat * Math.PI / 180)));
+    L.layerGroup([c, L.tooltip({ permanent: true, direction: i % 2 ? "bottom" : "top", offset: [0, i % 2 ? 4 : -4], className: "ring-label" }).setLatLng(west).setContent(esc(km + " km from " + centre.name))]).addTo(ringLayer);
     return c;
   });
   radii.forEach((km, i) => { document.getElementById("ring-r" + i).value = km; document.getElementById("ring-o" + i).textContent = km + " km"; });
@@ -710,6 +713,44 @@ SITES.forEach((s, i) => {
   markers.push(m);
 });
 
+/* Phones and touch screens: pins closer than 28 px on screen merge into one numbered group; tapping it zooms in */
+const groupPins = () => matchMedia("(max-width: 640px), (hover: none)").matches;
+const clusterLayer = L.layerGroup().addTo(map);
+function updateClusters() {
+  clusterLayer.clearLayers();
+  const show = (i, on) => { const el = markers[i].getElement(); if (el) el.style.display = on ? "" : "none"; };
+  SITES.forEach((_, i) => show(i, true));
+  if (!groupPins()) return;
+  const pts = SITES.map(s => map.latLngToContainerPoint([s.lat, s.lng]));
+  const used = new Set(), groups = [];
+  SITES.forEach((_, i) => {
+    if (used.has(i)) return;
+    // the pins within 28 px of this one (no chaining, so a line of pins does not become one big group)
+    const members = [i, ...SITES.map((__, j) => j).filter(j => j !== i && !used.has(j) && pts[i].distanceTo(pts[j]) < 28)];
+    if (members.length < 2) return;
+    members.forEach(j => used.add(j));
+    groups.push(members);
+  });
+  // two group discs (38 px) that would overlap become one group
+  const centre = g => L.point(g.reduce((a, j) => a + pts[j].x, 0) / g.length, g.reduce((a, j) => a + pts[j].y, 0) / g.length);
+  for (let a = 0; a < groups.length; a++)
+    for (let b = a + 1; b < groups.length; b++)
+      if (centre(groups[a]).distanceTo(centre(groups[b])) < 42) { groups[a].push(...groups[b]); groups.splice(b, 1); b = a; }
+  groups.forEach(members => {
+    members.forEach(j => show(j, false));
+    const ll = L.latLngBounds(members.map(j => [SITES[j].lat, SITES[j].lng]));
+    const nums = members.map(j => j + 1).sort((a, b) => a - b);
+    const g = SITES[members[0]].group;
+    L.marker(ll.getCenter(), {
+      icon: L.divIcon({ className: "", html: `<div class="cluster ${gcls(g)}" data-sites="${nums.join(",")}"><b>${nums.length}</b></div>`, iconSize: [38, 38], iconAnchor: [19, 19] }),
+      title: `Sites ${nums.join(", ")}: tap to zoom in`, zIndexOffset: 200
+    }).on("click", () => { hideCard(); map.fitBounds(ll.pad(0.5), { maxZoom: 17, padding: [50, 50] }); }).addTo(clusterLayer);
+  });
+}
+map.on("zoomend", updateClusters);
+window.addEventListener("resize", updateClusters);
+updateClusters();
+
 function highlight(n, on) {
   const p = document.getElementById("pin-" + n); if (p) p.classList.toggle("active", on);
   const r = document.getElementById("row-" + n); if (r) r.classList.toggle("hl", on);
@@ -767,7 +808,7 @@ rowsEl.querySelectorAll("tr.site").forEach(r => {
     document.querySelector(".map-shell").scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
     map.flyTo(m.getLatLng(), 17, { duration: .8 });
     hideCard();
-    map.once("moveend", () => showCard(n));
+    map.once("moveend", () => { updateClusters(); showCard(n); });
   };
   r.addEventListener("click", e => { if (!e.target.closest("a, input")) go(); });
   r.addEventListener("keydown", e => { if (e.target.closest("input, a")) return; if (e.key === "Enter" || e.key === " ") { e.preventDefault(); go(); } });

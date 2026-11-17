@@ -133,11 +133,47 @@ test.describe("touch targets on a phone", () => {
     await page.goto(pathToFileURL(FILE).href);
     await expect(page.locator(".pin")).toHaveCount(8);
     expect((await page.locator("#legend summary").boundingBox())!.height).toBeGreaterThanOrEqual(44);
-    // a tap 18 px from pin 1's centre still lands on pin 1
-    const hit = await page.evaluate(() => {
-      const r = document.getElementById("pin-1")!.getBoundingClientRect();
-      return document.elementFromPoint(r.x + r.width / 2 + 18, r.y + r.height / 2)?.closest(".pin")?.id;
+    // a tap 18 px from pin 1's centre (on its free side; a pin group sits to its right) still lands on pin 1
+    const hits = await page.evaluate(() => {
+      const r = document.getElementById("pin-1")!.getBoundingClientRect(), x = r.x + r.width / 2, y = r.y + r.height / 2;
+      return [[-18, 0], [0, -18], [0, 18]].map(([dx, dy]) => document.elementFromPoint(x + dx!, y + dy!)?.closest(".pin")?.id);
     });
-    expect(hit).toBe("pin-1");
+    expect(hits).toEqual(["pin-1", "pin-1", "pin-1"]);
+  });
+});
+
+test.describe("overlapping pins on a phone", () => {
+  test.skip(!existsSync(FILE), "Run npm run build:example first");
+  test("nearby pins merge into a numbered group that zooms in when tapped; Show all sites groups them again", async ({ page }) => {
+    await page.goto(pathToFileURL(FILE).href);
+    await expect(page.locator(".pin")).toHaveCount(8);
+    const group = page.locator(".cluster").first();
+    await expect(group).toBeVisible();
+    const sites = (await group.getAttribute("data-sites"))!.split(",");
+    expect(sites.length).toBeGreaterThanOrEqual(2);
+    // group discs never overlap each other
+    const boxes = await page.locator(".cluster").evaluateAll(els => els.map(e => e.getBoundingClientRect()).map(r => [r.x, r.y, r.right, r.bottom]));
+    for (let a = 0; a < boxes.length; a++) for (let b = a + 1; b < boxes.length; b++) {
+      const [p, q] = [boxes[a]!, boxes[b]!];
+      expect(p[2]! <= q[0]! || q[2]! <= p[0]! || p[3]! <= q[1]! || q[3]! <= p[1]!).toBe(true);
+    }
+    await expect(group).toHaveText(String(sites.length));
+    for (const n of sites) await expect(page.locator(`#pin-${n}`)).toBeHidden();
+    const zoom = await page.evaluate(() => (0, eval)("map.getZoom()") as number);
+    await group.tap();
+    await expect.poll(() => page.evaluate(() => (0, eval)("map.getZoom()") as number)).toBeGreaterThan(zoom);
+    // the group has split: its sites no longer sit in one group, and at least one shows as its own pin
+    await expect(page.locator(`.cluster[data-sites="${sites.join(",")}"]`)).toHaveCount(0);
+    const visible = await Promise.all(sites.map(n => page.locator(`#pin-${n}`).isVisible()));
+    expect(visible.some(Boolean)).toBe(true);
+    await page.getByRole("button", { name: "Show all sites" }).tap();
+    await expect(page.locator(".cluster").first()).toBeVisible();
+  });
+
+  test("ring labels sit on the west side of their circles, clear of the map controls", async ({ page }) => {
+    await page.goto(pathToFileURL(FILE).href);
+    await expect(page.locator(".pin")).toHaveCount(8);
+    const below = await page.evaluate(() => (0, eval)("ringLayer.getLayers().every((g, i) => g.getLayers()[1].getLatLng().lng < ringCircles[i].getLatLng().lng)"));
+    expect(below).toBe(true);
   });
 });
