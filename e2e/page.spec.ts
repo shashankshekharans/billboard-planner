@@ -190,3 +190,35 @@ test("the built page reads like the hand-made reference", async ({ page, browser
   expect(await snapshot(page)).toEqual(await snapshot(ref));
   await ref.close();
 });
+
+test("radius sliders resize the rings, count the sites inside, change centre, reset and are remembered", async ({ page }) => {
+  const radius = (i: number) => leaflet<number>(page, `ringCircles[${i}].getRadius()`);
+  const centreLat = () => leaflet<number>(page, `ringCircles[0].getLatLng().lat`);
+  const first = page.getByLabel("Ring 1 radius in km"), second = page.getByLabel("Ring 2 radius in km");
+  await expect(first).toHaveValue("20");
+  await expect(second).toHaveValue("50");
+  await expect(first).toHaveAttribute("min", "1");
+  await expect(first).toHaveAttribute("max", "100");
+  await first.fill("10");
+  expect(await radius(0)).toBe(10000);
+  await expect(page.locator(".ring-label").first()).toHaveText("10 km from Gurgaon");
+  await page.getByLabel("Ring centre").selectOption({ label: "AAJ Swift Warehouse" });
+  expect(await centreLat()).toBeCloseTo(28.241322, 5);
+  await expect(page.locator(".ringctl")).toContainText("10 km: 1 site");
+  await expect(page.locator(".ring-label").first()).toHaveText("10 km from AAJ Swift Warehouse");
+  await page.reload();
+  await expect(page.locator(".pin")).toHaveCount(8);
+  expect(await radius(0)).toBe(10000);
+  expect(await centreLat()).toBeCloseTo(28.241322, 5);
+  await page.getByRole("button", { name: "Reset rings" }).click();
+  expect(await radius(0)).toBe(20000);
+  expect(await radius(1)).toBe(50000);
+  expect(await centreLat()).toBeCloseTo(28.4595, 4);
+});
+
+test("a viewer's own pin can be the ring centre", async ({ page }) => {
+  await addMyPin(page, "Client office");
+  await page.getByLabel("Ring centre").selectOption({ label: "My pin: Client office" });
+  const pin = await page.evaluate(() => JSON.parse(localStorage.getItem("bbp:v1:Billboard Plan")!).pins[0]);
+  expect(await leaflet<number>(page, "ringCircles[0].getLatLng().lat")).toBeCloseTo(pin.lat, 5);
+});

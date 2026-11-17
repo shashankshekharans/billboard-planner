@@ -149,6 +149,7 @@ td a:hover { text-decoration: underline; }
   .legend { bottom: 22px; font-size: 12px; max-width: calc(100% - 24px); }
   .legend summary { display: block; cursor: pointer; font-weight: 600; padding: 2px 0; }
   .legend[open] summary { margin-bottom: 6px; }
+  .legend[open] { z-index: 1001; max-height: calc(100% - 34px); overflow: auto; }   /* above the zoom buttons, scrolls on short maps */
   .legend:not([open]) { padding: 6px 10px; }
 
   /* Header: logo above the title */
@@ -190,6 +191,14 @@ td a:hover { text-decoration: underline; }
 .place.mine b { font-style: italic; }
 .legend .place-key { width: 12px; height: 12px; border-radius: 50%; background: var(--pc); border: 2px solid #fff; box-shadow: 0 0 0 1px var(--pc); }
 .legend .place-key.mine { background: #fff; border: 2px dashed var(--pc); box-shadow: none; }
+/* Ring controls: centre and one slider per ring */
+.ringctl { display: grid; gap: 6px; border-top: 1px solid var(--line); padding-top: 6px; }
+.ringctl label.ringtoggle { border: 0; padding: 0; }
+.ringctl .ringrow { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 8px; }
+.ringctl input[type=range] { width: 100%; accent-color: var(--accent); }
+.ringctl output { font-weight: 600; min-width: 4.5em; text-align: right; }
+.ringctl select { font: inherit; border: 1px solid var(--line); border-radius: 6px; padding: 4px 6px; max-width: 200px; }
+.ringctl .ringfoot { display: flex; align-items: center; justify-content: space-between; gap: 8px; color: var(--muted); }
 /* Viewer's own pins */
 .mypins { display: grid; gap: 6px; border-top: 1px solid var(--line); padding-top: 6px; }
 .mypins-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
@@ -354,7 +363,10 @@ legendEl.innerHTML = `<summary>Map key</summary><div class="legend-body">` +
   GROUPS.map(g => `<span><i class="swatch ${gcls(g.id)}"></i>${esc(g.name)}</span>`).join("") +
   BASES.map(b => `<span><i class="wh-key"></i>${esc(b.legendLabel || b.name)}</span>`).join("") +
   [...new Set(PINS.map(p => PIN_KIND[p.kind] ? p.kind : "other"))].map(k => `<span><i class="place-key" style="--pc:${kindOf(k).color}"></i>${kindOf(k).label}</span>`).join("") +
-  (RINGS ? `<label for="rings"><input type="checkbox" id="rings"${RINGS.visible === false ? "" : " checked"}> ${esc(listJoin(RINGS.radiiKm.map(km => km + " km")))} from ${esc(ringPlace)}</label>` : "") +
+  (RINGS ? `<div class="ringctl"><label for="rings" class="ringtoggle"><input type="checkbox" id="rings"${RINGS.visible === false ? "" : " checked"}> <span id="rings-text"></span></label>` +
+    `<label class="ringrow"><span>Centre</span><select id="ring-centre" aria-label="Ring centre"></select><span></span></label>` +
+    RINGS.radiiKm.map((km, i) => `<label class="ringrow"><span>Ring ${i + 1}</span><input type="range" id="ring-r${i}" min="1" max="100" step="1" value="${Math.min(100, Math.max(1, Math.round(km)))}" aria-label="Ring ${i + 1} radius in km"><output id="ring-o${i}"></output></label>`).join("") +
+    `<div class="ringfoot"><span id="ring-inside" aria-live="polite"></span><button type="button" class="mini-btn" id="ring-reset">Reset rings</button></div></div>` : "") +
   `<div class="mypins"><div class="mypins-head"><span><i class="place-key mine" style="--pc:${MINE_COLOR}"></i> My pins</span><button type="button" class="mini-btn" id="add-pin" aria-pressed="false">Add a pin</button></div><ul id="mypins-list" aria-label="My pins"></ul></div>` +
   `</div>`;
 if (matchMedia("(max-width: 640px)").matches) legendEl.open = false;   // phones: folded, so it does not cover the map
@@ -389,15 +401,59 @@ bMap.onclick = () => setView(false);
 
 const bounds = L.latLngBounds(SITES.map(s => [s.lat, s.lng]).concat(BASES.map(b => [b.lat, b.lng]), PINS.map(c => [c.lat, c.lng])));
 
+/* Radius rings: the plan sets the centre and radii; a viewer can move the centre and drag each radius (kept in their browser) */
+let ringCircles = [];
+const ringLayer = L.layerGroup();
+// Centre choices: the plan's ring centre, each base, each planner pin, each of the viewer's own pins
+const ringCentres = () => [
+  { id: "plan", name: ringPlace, lat: RINGS.center.lat, lng: RINGS.center.lng },
+  ...BASES.map((b, i) => ({ id: "base:" + i, name: b.name, lat: b.lat, lng: b.lng })),
+  ...PINS.map((p, i) => ({ id: "pin:" + i, name: p.name, lat: p.lat, lng: p.lng })),
+  ...VIEW.pins.map((p, i) => ({ id: "mine:" + i, name: p.name, label: "My pin: " + p.name, lat: p.lat, lng: p.lng }))
+];
+function ringState() {
+  const r = VIEW.rings && typeof VIEW.rings === "object" ? VIEW.rings : {};
+  const radii = RINGS.radiiKm.map((km, i) => {
+    const v = Array.isArray(r.radii) ? +r.radii[i] : NaN;
+    return Number.isFinite(v) && v >= 1 && v <= 100 ? Math.round(v) : km;
+  });
+  const centre = ringCentres().find(c => c.id === r.centre) || ringCentres()[0];
+  return { radii, centre };
+}
+function drawRings() {
+  const { radii, centre } = ringState();
+  ringLayer.clearLayers();
+  ringCircles = radii.map(km => {
+    const c = L.circle([centre.lat, centre.lng], { radius: km * 1000, color: "#ffffff", weight: 2.5, opacity: .95, dashArray: "6 8", fill: false, interactive: false });
+    const top = L.latLng(centre.lat + km / 111.2, centre.lng);
+    L.layerGroup([c, L.tooltip({ permanent: true, direction: "center", className: "ring-label" }).setLatLng(top).setContent(esc(km + " km from " + centre.name))]).addTo(ringLayer);
+    return c;
+  });
+  radii.forEach((km, i) => { document.getElementById("ring-r" + i).value = km; document.getElementById("ring-o" + i).textContent = km + " km"; });
+  document.getElementById("rings-text").textContent = `${listJoin(radii.map(km => km + " km"))} from ${centre.name}`;
+  const sel = document.getElementById("ring-centre");
+  sel.innerHTML = ringCentres().map(c => `<option value="${esc(c.id)}"${c.id === centre.id ? " selected" : ""}>${esc(c.label || c.name)}</option>`).join("");
+  const inside = km => SITES.filter(s => kmTo(centre, s) <= km).length;
+  document.getElementById("ring-inside").textContent = radii.map(km => `${km} km: ${inside(km)} site${inside(km) === 1 ? "" : "s"}`).join(" · ");
+}
+function setRings(patch) {
+  const cur = ringState();
+  VIEW.rings = { centre: cur.centre.id, radii: cur.radii, ...patch };
+  saveView(); drawRings();
+}
 if (RINGS) {
-  const c0 = RINGS.center;
-  const rings = L.layerGroup(RINGS.radiiKm.map(km => {
-    const c = L.circle([c0.lat, c0.lng], { radius: km * 1000, color: "#ffffff", weight: 2.5, opacity: .95, dashArray: "6 8", fill: false, interactive: false });
-    const top = L.latLng(c0.lat + km / 111.2, c0.lng);
-    return L.layerGroup([c, L.tooltip({ permanent: true, direction: "center", className: "ring-label" }).setLatLng(top).setContent(esc(km + " km from " + ringPlace))]);
-  }));
-  if (RINGS.visible !== false) rings.addTo(map);
-  document.getElementById("rings").onchange = e => e.target.checked ? rings.addTo(map) : map.removeLayer(rings);
+  drawRings();
+  if (RINGS.visible !== false) ringLayer.addTo(map);
+  document.getElementById("rings").onchange = e => e.target.checked ? ringLayer.addTo(map) : map.removeLayer(ringLayer);
+  RINGS.radiiKm.forEach((_, i) => {
+    document.getElementById("ring-r" + i).addEventListener("input", e => {
+      const radii = ringState().radii.slice(); radii[i] = +e.target.value; setRings({ radii });
+    });
+  });
+  document.getElementById("ring-centre").onchange = e => setRings({ centre: e.target.value });
+  document.getElementById("ring-reset").onclick = () => { delete VIEW.rings; saveView(); drawRings(); };
+  // A removed viewer pin falls back to the plan's centre
+  document.addEventListener("bbp:pins", drawRings);
 }
 
 const placeMarker = (p, mine) => L.marker([p.lat, p.lng], {
