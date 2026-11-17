@@ -104,3 +104,25 @@ test.describe("shortlist on a phone", () => {
     expect(box.y + box.height).toBeGreaterThan(vh - 40);
   });
 });
+
+test.describe("site card on a phone", () => {
+  test.skip(!existsSync(FILE), "Run npm run build:example first");
+  test("opens as a sheet at the bottom of the map, with total and distance in view, clear of the zoom buttons", async ({ page }) => {
+    await page.goto(pathToFileURL(FILE).href);
+    await expect(page.locator(".pin")).toHaveCount(8);
+    await page.locator("#pin-1").tap();
+    const card = page.locator("#card");
+    await expect(card).toBeVisible();
+    const map = (await page.locator(".map-shell").boundingBox())!, box = (await card.boundingBox())!;
+    expect(Math.abs(box.y + box.height - (map.y + map.height))).toBeLessThan(3);
+    expect(box.height).toBeLessThanOrEqual(map.height * 0.62);
+    expect(Math.abs(box.width - map.width)).toBeLessThan(3);
+    const quick = card.locator(".card-quick");
+    await expect(quick).toContainText("₹48,000");
+    await expect(quick).toContainText("30.3 km");
+    const q = (await quick.boundingBox())!;
+    expect(q.y + q.height).toBeLessThanOrEqual(box.y + box.height);
+    const zoom = (await page.locator(".leaflet-control-zoom").boundingBox())!;
+    expect(zoom.y + zoom.height).toBeLessThan(box.y);
+  });
+});

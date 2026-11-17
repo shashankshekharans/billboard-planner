@@ -75,6 +75,7 @@ header.top .wrap { display: flex; align-items: center; justify-content: space-be
 .resize-handle:focus-visible { outline: none; }
 body.resizing { user-select: none; cursor: ns-resize; }
 .card-photo { position: relative; aspect-ratio: 16/10; background: var(--line); }
+.card-quick { display: none; }
 /* Close button for touch screens (no mouse to move off the card) */
 .card-close { display: none; position: absolute; z-index: 2; top: 8px; left: 8px; width: 34px; height: 34px; border-radius: 50%; border: 0; background: rgba(255,255,255,.95); color: var(--ink); font-size: 22px; line-height: 1; cursor: pointer; box-shadow: 0 1px 6px rgba(0,0,0,.35); }
 @media (hover: none), (max-width: 640px) { .card-close { display: block; } }
@@ -166,6 +167,15 @@ td a:hover { text-decoration: underline; }
   .legend { bottom: 22px; font-size: 12px; max-width: calc(100% - 24px); }
   .legend summary { display: block; cursor: pointer; font-weight: 600; padding: 2px 0; }
   .legend[open] summary { margin-bottom: 6px; }
+  /* Site card: a sheet along the bottom of the map, total and distance first */
+  .site-card { top: auto; bottom: 0; left: 0; right: 0; width: auto; max-width: none; max-height: 60% !important; transform: none !important; border-radius: 14px 14px 0 0; box-shadow: 0 -6px 24px rgba(0,0,0,.35); }
+  .site-card .card-photo { aspect-ratio: auto; height: 112px; }
+  .site-card { z-index: 1002; }   /* above the attribution line and the resize handle */
+  .site-card .card-close { top: 6px; }
+  .site-card .nav { top: calc(50% + 14px); }
+  .card-quick { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; background: var(--ink); color: #fff; border-radius: 8px; padding: 8px 12px; font-size: 13px; }
+  .card-quick strong { font: 700 20px/1 var(--font-display); }
+  .site-card .dist { display: none; }
   .legend[open] { z-index: 1001; max-height: calc(100% - 34px); overflow: auto; }   /* above the zoom buttons, scrolls on short maps */
   .legend:not([open]) { padding: 6px 10px; }
 
@@ -576,6 +586,7 @@ function cardHTML(s, n) {
       <h3>${esc(s.location)}</h3>
       ${s.facing ? `<span class="facing">Facing ${esc(s.facing)}</span>` : ""}
     </div>
+    <div class="card-quick"><strong>${cur(total(s))}${hasPrint(s) ? "" : "*"}</strong><span>for ${s.days} days</span>${BASE ? `<span>· ${baseKm(s)} km from our ${esc(BASE_LABEL)}</span>` : ""}</div>
     ${BASE ? `<div class="dist"><span>From our ${esc(BASE_LABEL)}<br>straight-line distance</span><strong>${baseKm(s)} km</strong></div>` : ""}
     <dl class="specs">
       <div><dt>Media vehicle</dt><dd>${esc(s.mediaVehicle || "—")}</dd></div>
@@ -608,8 +619,10 @@ addEventListener("pointerdown", e => { lastPointer = e.pointerType || "mouse"; }
 const isTouch = () => lastPointer !== "mouse";
 const justOpened = () => isTouch() && performance.now() - cardShownAt < 450;
 
+const phoneCard = () => matchMedia("(max-width: 640px)").matches;   // phones: the card is a bottom sheet (CSS), not placed by the pin
 function placeCard() {
   if (!openN) return;
+  if (phoneCard()) { cardEl.style.transform = ""; return; }
   const s = SITES[openN - 1], p = map.latLngToContainerPoint([s.lat, s.lng]);
   const W = shell.clientWidth, H = shell.clientHeight, w = cardEl.offsetWidth, h = cardEl.offsetHeight, gap = 22, pad = 8;
   let x = p.x + gap;
@@ -627,7 +640,7 @@ function showCard(n) {
   const s = SITES[n - 1];
   cardEl.innerHTML = cardHTML(s, n);
   cardShownAt = performance.now();
-  cardEl.style.maxHeight = (shell.clientHeight - 16) + "px";
+  cardEl.style.maxHeight = phoneCard() ? "" : (shell.clientHeight - 16) + "px";
   cardEl.hidden = false;
   placeCard();
   cardEl.querySelectorAll("img").forEach(im => im.complete || (im.onload = placeCard));
