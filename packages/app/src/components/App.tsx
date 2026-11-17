@@ -59,6 +59,8 @@ export function App() {
   };
   const edit = (fn: (w: Workspace) => Workspace) => { if (latest.current) update(fn(latest.current)); };
   const start = (next: Workspace) => { update(next); go("edit"); };
+  // Only one plan is kept in the browser: ask before anything replaces it.
+  const keepSaved = () => !saved || confirm(`Replace "${saved.file.plan.title || "your plan"}", the plan kept in this browser? Download it first if you want to keep it.`);
 
   const open = async (files: File[]) => {
     setError(undefined);
@@ -78,8 +80,8 @@ export function App() {
     return <>
       <Editor
         ws={example} readOnly onChange={() => {}}
-        onHome={() => go("start")} onOpen={open} onNew={() => start(newWorkspace())}
-        onDuplicate={() => { if (example) { start({ ...structuredClone(example), origin: "duplicate" }); say("Copied the example into your own plan. Your changes are kept in this browser."); } }}
+        onHome={() => go("start")} onOpen={open} onNew={() => { if (keepSaved()) start(newWorkspace()); }}
+        onDuplicate={() => { if (example && keepSaved()) { start({ ...structuredClone(example), origin: "duplicate" }); say("Copied the example into your own plan. Your changes are kept in this browser."); } }}
         exampleTitle={exampleInfo?.title} error={error}
       />
       {toastEl}

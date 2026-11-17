@@ -120,3 +120,30 @@ test("a page downloaded from the app opens again for editing", async ({ page }) 
   await expect(pins(f)).toHaveCount(8);
   await expect(f.locator("tfoot")).toContainText("₹4,66,000*");
 });
+
+test("Duplicate as my plan asks before replacing a plan kept in this browser", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: /Start a new plan/ }).click();
+  await page.getByRole("tab", { name: "Plan details" }).click();
+  await page.getByLabel("Title", { exact: true }).fill("My own plan");
+  await page.waitForTimeout(800);   // autosave
+  await page.goto("/#example");
+  await expect(page.frameLocator('iframe[title="Plan page preview"]').locator(".pin")).toHaveCount(8);
+  let asked = "";
+  page.once("dialog", d => { asked = d.message(); d.dismiss(); });
+  await page.getByRole("button", { name: "Duplicate as my plan" }).click();
+  expect(asked).toMatch(/replace/i);
+  await expect(page).toHaveURL(/#example$/);
+  await page.goto("/");
+  await expect(page.getByText("My own plan")).toBeVisible();
+});
+
+test("Plan details shows the example warehouse's coordinates", async ({ page }) => {
+  await page.goto("/#example");
+  await expect(page.frameLocator('iframe[title="Plan page preview"]').locator(".pin")).toHaveCount(8);
+  page.once("dialog", d => d.accept());
+  await page.getByRole("button", { name: "Duplicate as my plan" }).click();
+  await page.getByRole("tab", { name: "Plan details" }).click();
+  const base = page.locator("fieldset", { hasText: "Your base" });
+  await expect(base.getByLabel("Coordinates")).toHaveValue("28.24132198237465, 76.9355599373958");
+});

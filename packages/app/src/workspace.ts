@@ -100,6 +100,32 @@ export function download(name: string, text: string) {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
+/**
+ * Plan files may store positions as lat/lng; the editor's fields edit `coords` text.
+ * Fill `coords` from lat/lng (bases, ring centre, pins and cities) so the fields show them.
+ */
+export function normaliseDraft(file: FileDraft): FileDraft {
+  type Pos = { coords?: string; lat?: number; lng?: number };
+  const fix = <T extends object>(o: T): T => {
+    const p = o as T & Pos;
+    if ((p.coords === undefined || p.coords === "") && typeof p.lat === "number" && typeof p.lng === "number") {
+      const { lat, lng, ...rest } = p;
+      return { ...rest, coords: `${lat}, ${lng}` } as T;
+    }
+    return o;
+  };
+  const plan = file.plan;
+  return {
+    ...file,
+    plan: {
+      ...plan,
+      ...(plan.bases && { bases: plan.bases.map(fix) }),
+      ...(plan.rings && { rings: { ...plan.rings, center: fix(plan.rings.center) } }),
+      ...(plan.cities && { cities: plan.cities.map(fix) })
+    }
+  };
+}
+
 // ---- Starting points ---------------------------------------------------------------------------------
 
 export function newWorkspace(): Workspace {
@@ -137,7 +163,7 @@ export async function loadExample(info: ExampleInfo): Promise<Workspace> {
     const r = await fetch(base + p);
     if (r.ok) images[p] = await readDataUrl(await r.blob());
   }));
-  return { file, images, origin: "example" };
+  return { file: normaliseDraft(file), images, origin: "example" };
 }
 
 // ---- Opening files -----------------------------------------------------------------------------------
@@ -197,7 +223,7 @@ export async function openFiles(files: File[]): Promise<{ ws: Workspace; warning
     const found = names.filter(n => re.test(n));
     if (found.length) s.photos = found;
   }
-  return { ws: { file, images, origin: "opened" }, warnings };
+  return { ws: { file: normaliseDraft(file), images, origin: "opened" }, warnings };
 }
 
 /** Add sites from a spreadsheet to the current plan, matching its groups by id or name. */
