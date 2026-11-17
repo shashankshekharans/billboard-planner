@@ -257,3 +257,38 @@ test("a shortlisted site missing from an updated plan is dropped", async ({ page
   await expect(page.locator(".pin")).toHaveCount(8);
   await expect(page.locator(".slbar")).toContainText("1 site · ₹96,000");
 });
+
+test("pins work from the keyboard: named, Enter opens the card dialog, Escape closes and returns focus", async ({ page }) => {
+  const marker = page.locator(".leaflet-marker-icon", { has: page.locator("#pin-3") });
+  await expect(marker).toHaveAttribute("aria-label", "Site 3, Opp. N.H. Desi Hotel, Khijuri Agarwal Movers, facing Jaipur");
+  await marker.focus();
+  await page.keyboard.press("Enter");
+  const card = page.locator("#card");
+  await expect(card).toBeVisible();
+  await expect(card).toHaveAttribute("role", "dialog");
+  await expect(card.locator("h3")).toBeFocused();
+  await expect(card).toHaveAccessibleName("Opp. N.H. Desi Hotel, Khijuri Agarwal Movers");
+  await page.keyboard.press("Escape");
+  await expect(card).toBeHidden();
+  await expect(marker).toBeFocused();
+});
+
+test("text on group colours reaches 4.5:1 contrast", async ({ page }) => {
+  const ratios = await page.evaluate(() => {
+    const rgb = (c: string) => c.match(/\d+(\.\d+)?/g)!.slice(0, 3).map(Number);
+    const lum = (c: number[]) => { const [r, g, b] = c.map(v => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }); return 0.2126 * r! + 0.7152 * g! + 0.0722 * b!; };
+    const ratio = (el: Element, bgEl: Element = el) => {
+      const a = lum(rgb(getComputedStyle(el).color)), b = lum(rgb(getComputedStyle(bgEl).backgroundColor));
+      return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+    };
+    const binaloHead = [...document.querySelectorAll("tr.group td")][1]!;
+    const badge = document.querySelector("#row-8 .idx")!, extra = document.querySelector("#row-8 .extra")!;
+    const extraCell = extra.closest("td")!, row = extra.closest("tr")!;
+    const bgOf = (el: Element) => { let e: Element | null = el; while (e && getComputedStyle(e).backgroundColor === "rgba(0, 0, 0, 0)") e = e.parentElement; return e ?? document.body; };
+    return { binaloHead: ratio(binaloHead), badge: ratio(badge), extra: ratio(extra, bgOf(extraCell)), pin8: ratio(document.querySelector("#pin-8 b")!, document.querySelector("#pin-8")!), row: !!row };
+  });
+  expect(ratios.binaloHead).toBeGreaterThanOrEqual(4.5);
+  expect(ratios.badge).toBeGreaterThanOrEqual(4.5);
+  expect(ratios.extra).toBeGreaterThanOrEqual(4.5);
+  expect(ratios.pin8).toBeGreaterThanOrEqual(4.5);
+});

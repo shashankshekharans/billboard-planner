@@ -126,3 +126,18 @@ test.describe("site card on a phone", () => {
     expect(zoom.y + zoom.height).toBeLessThan(box.y);
   });
 });
+
+test.describe("touch targets on a phone", () => {
+  test.skip(!existsSync(FILE), "Run npm run build:example first");
+  test("Map key and pins are comfortable to tap", async ({ page }) => {
+    await page.goto(pathToFileURL(FILE).href);
+    await expect(page.locator(".pin")).toHaveCount(8);
+    expect((await page.locator("#legend summary").boundingBox())!.height).toBeGreaterThanOrEqual(44);
+    // a tap 18 px from pin 1's centre still lands on pin 1
+    const hit = await page.evaluate(() => {
+      const r = document.getElementById("pin-1")!.getBoundingClientRect();
+      return document.elementFromPoint(r.x + r.width / 2 + 18, r.y + r.height / 2)?.closest(".pin")?.id;
+    });
+    expect(hit).toBe("pin-1");
+  });
+});
