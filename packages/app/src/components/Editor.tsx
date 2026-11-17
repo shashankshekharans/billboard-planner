@@ -129,7 +129,7 @@ export function Editor(props: Props) {
           ) : !ws ? (
             <div class="empty" role="status"><b>Loading {props.exampleTitle ?? "the example"}…</b></div>
           ) : html ? (
-            <iframe title="Plan page preview" srcdoc={html} sandbox="allow-scripts allow-popups allow-popups-to-escape-sandbox" />
+            <iframe title="Plan page preview" srcdoc={html} sandbox="allow-scripts allow-popups allow-popups-to-escape-sandbox allow-downloads allow-modals" />
           ) : (
             <div class="empty">
               <b>{siteCount ? "Fix the items under Checks to see the page" : "Add your first site"}</b>

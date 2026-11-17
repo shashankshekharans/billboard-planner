@@ -261,6 +261,21 @@ td a:hover { text-decoration: underline; }
 .lb-nav.prev { left: calc(16px + env(safe-area-inset-left, 0px)); } .lb-nav.next { right: calc(16px + env(safe-area-inset-right, 0px)); }
 .lb-cap { position: fixed; left: 50%; bottom: calc(14px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); color: #fff; font-size: 14px; background: rgba(0,0,0,.5); padding: 5px 12px; border-radius: 14px; white-space: nowrap; max-width: calc(100% - 32px); overflow: hidden; text-overflow: ellipsis; }
 .lb-close:focus-visible, .lb-nav:focus-visible { outline: 3px solid var(--brand); outline-offset: 2px; }
+.exports { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.exports .mini-btn { padding: 9px 12px; font-size: 13px; }
+/* Print: the plan as a document; controls and viewer tools left out */
+@media print {
+  @page { margin: 12mm; }
+  body { background: #fff; font-size: 12px; }
+  .map-ctrl, .fit-btn, .leaflet-control-zoom, .resize-handle, .slbar, .exports, .site-card, .mypins, .ringctl .ringrow, .ringctl .ringfoot,
+  input.sl, .shortlist-btn, .legend summary, .lightbox, .pin-form, .map-hint { display: none !important; }
+  .legend { display: block !important; }
+  .map-shell { height: 110mm !important; min-height: 0 !important; max-height: none !important; break-inside: avoid; }
+  .table-scroll { overflow: visible; border: 0; }
+  table { min-width: 0; }
+  tr { break-inside: avoid; }
+  body.has-slbar .table-sec .wrap { padding-bottom: 0; }
+}
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 </style>
 <style id="group-styles"></style>
@@ -306,6 +321,11 @@ td a:hover { text-decoration: underline; }
       </table>
     </div>
     <div class="notes" id="notes"></div>
+    <div class="exports" role="group" aria-label="Download or print">
+      <button type="button" class="mini-btn" id="dl-csv">Download CSV</button>
+      <button type="button" class="mini-btn" id="dl-kml">Download KML</button>
+      <button type="button" class="mini-btn" id="do-print">Print</button>
+    </div>
   </div>
 </section>
 
@@ -891,6 +911,36 @@ slBar.addEventListener("click", async e => {
   }
 });
 syncShortlist();
+
+/* Exports: CSV (opens in Excel), KML (Google Earth), print */
+const fileBase = (PLAN.title || "billboard plan").toLowerCase().normalize("NFKD").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "billboard-plan";
+function saveFile(name, type, text) {
+  const url = URL.createObjectURL(new Blob([text], { type }));
+  const a = Object.assign(document.createElement("a"), { href: url, download: name });
+  document.body.append(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+const csvCell = v => { const t = v === null || v === undefined ? "" : String(v); return /[",\n]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t; };
+document.getElementById("dl-csv").onclick = () => {
+  const head = ["#", "Group", "Location", "Media vehicle", "Facing", "Latitude", "Longitude", "Width (ft)", "Height (ft)", "Area (sq ft)", "Illumination",
+    "Rate / month", "Printing", "Total", ...(BASE ? [`From ${BASE_LABEL} (km)`] : []), "Shortlisted"];
+  const rows = SITES.map((s, i) => [i + 1, (GROUP[s.group] || {}).name || s.group, s.location, s.mediaVehicle, s.facing, s.lat, s.lng, s.widthFt, s.heightFt,
+    area(s), s.illumination, s.ratePerMonth, hasPrint(s) ? s.printing : printLabel(s), total(s), ...(BASE ? [baseKm(s)] : []), isShort(s) ? "Yes" : "No"]);
+  saveFile(fileBase + ".csv", "text/csv;charset=utf-8", "\uFEFF" + [head, ...rows].map(r => r.map(csvCell).join(",")).join("\r\n") + "\r\n");
+};
+const xml = t => String(t).replace(/[<>&"']/g, c => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;", "'": "&apos;" })[c]);
+const placemark = (name, desc, lat, lng) => `<Placemark><name>${xml(name)}</name>${desc ? `<description>${xml(desc)}</description>` : ""}<Point><coordinates>${lng},${lat},0</coordinates></Point></Placemark>`;
+document.getElementById("dl-kml").onclick = () => {
+  const folder = (name, items) => items.length ? `<Folder><name>${xml(name)}</name>${items.join("")}</Folder>` : "";
+  const sites = SITES.map((s, i) => placemark(`${i + 1}. ${s.location}`,
+    [s.mediaVehicle, `${s.widthFt} × ${s.heightFt} ft`, s.facing && `facing ${s.facing}`, `${cur(total(s))}${hasPrint(s) ? "" : "*"} for ${s.days} days`].filter(Boolean).join(" · "), s.lat, s.lng));
+  const kml = `<?xml version="1.0" encoding="UTF-8"?>\n<kml xmlns="http://www.opengis.net/kml/2.2"><Document><name>${xml(PLAN.title || "Billboard Plan")}</name>` +
+    folder("Sites", sites) + folder("Bases", BASES.map(b => placemark(b.name, "", b.lat, b.lng))) +
+    folder("Pins", PINS.map(p => placemark(p.name, kindOf(p.kind).label, p.lat, p.lng))) + folder("My pins", VIEW.pins.map(p => placemark(p.name, "My pin", p.lat, p.lng))) +
+    `</Document></kml>\n`;
+  saveFile(fileBase + ".kml", "application/vnd.google-earth.kml+xml", kml);
+};
+document.getElementById("do-print").onclick = () => { hideCard(); window.print(); };
 
 /* Photo lightbox: click the card photo to see it full size */
 const lb = document.createElement("div");

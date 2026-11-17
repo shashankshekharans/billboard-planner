@@ -1,5 +1,5 @@
 // The page the CLI builds (npm run build:example), opened as a file the way someone opens an emailed plan.
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { expect, test, type Page } from "@playwright/test";
@@ -291,4 +291,39 @@ test("text on group colours reaches 4.5:1 contrast", async ({ page }) => {
   expect(ratios.badge).toBeGreaterThanOrEqual(4.5);
   expect(ratios.extra).toBeGreaterThanOrEqual(4.5);
   expect(ratios.pin8).toBeGreaterThanOrEqual(4.5);
+});
+
+const downloadText = async (page: Page, button: string) => {
+  const [d] = await Promise.all([page.waitForEvent("download"), page.getByRole("button", { name: button }).click()]);
+  return { name: d.suggestedFilename(), text: readFileSync((await d.path())!, "utf8") };
+};
+
+test("Download CSV: one row per site with the costing columns and the shortlist", async ({ page }) => {
+  await page.getByLabel("Shortlist site 6").check();
+  const { name, text } = await downloadText(page, "Download CSV");
+  expect(name).toBe("billboard-plan.csv");
+  const lines = text.replace(/^\uFEFF/, "").trim().split(/\r?\n/);
+  expect(lines[0]).toBe("#,Group,Location,Media vehicle,Facing,Latitude,Longitude,Width (ft),Height (ft),Area (sq ft),Illumination,Rate / month,Printing,Total,From warehouse (km),Shortlisted");
+  expect(lines).toHaveLength(9);
+  expect(lines[6]).toBe("6,Delhi Jaipur Highway,Delhi Road – Dharuheda,Hoarding,Jaipur,28.220244,76.796553,80,30,2400,N/L,72000,24000,96000,13.8,Yes");
+  expect(lines[8]).toBe("8,Binalo – Near Stella Showroom,Binalo – Near Stella Showroom,Unipole,,28.30119,76.872404,30,15,450,,150000,Extra,150000,9.1,No");
+  expect(lines[3]).toContain('"Opp. N.H. Desi Hotel, Khijuri Agarwal Movers"');
+});
+
+test("Download KML: sites, the warehouse and pins for Google Earth", async ({ page }) => {
+  const { name, text } = await downloadText(page, "Download KML");
+  expect(name).toBe("billboard-plan.kml");
+  expect(text).toContain('<kml xmlns="http://www.opengis.net/kml/2.2">');
+  expect(text.match(/<Placemark>/g)).toHaveLength(11);
+  expect(text).toContain("<coordinates>76.796553,28.220244,0</coordinates>");
+  expect(text).toContain("Delhi Rd – Agarwal Movers &amp; Packers");
+});
+
+test("print layout hides the map controls, viewer tools and shortlist bar", async ({ page }) => {
+  await page.getByLabel("Shortlist site 6").check();
+  await page.emulateMedia({ media: "print" });
+  for (const sel of [".map-ctrl", ".fit-btn", ".leaflet-control-zoom", ".resize-handle", ".slbar", ".exports", ".mypins", "input.sl"]) {
+    await expect(page.locator(sel).first(), sel).toBeHidden();
+  }
+  await expect(page.locator("#row-6")).toBeVisible();
 });

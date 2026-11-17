@@ -22,7 +22,10 @@ Open the app and choose **View example** to explore a real plan: seven hoardings
 - 📱 **Works on phones**: the map, cards, photos and costing table adapt to small screens, for plans shared on WhatsApp
 - 📦 **One self-contained file**: photos, logo and data built in, nothing to install for viewers
 - 🔍 **Full-size photos**: click a card's photo to view it full screen, with arrows for sites that have several
-- 🏙️ **City markers** (e.g. Gurgaon, Manesar) to help people find their way around the map
+- 📌 **Pins for the places that matter**: cities, your stores and dealers, competitors' boards, big customers, each with its own colour. Anyone viewing the page can also drop their own pins
+- 📏 **Radius sliders**: drag the rings from 1 to 100 km around any city, base or pin and see how many sites fall inside
+- ✅ **Shortlist and send**: tick the sites you want and send the list, with sizes, costs and map links, on WhatsApp
+- ⬇️ **Exports**: download the table as CSV (opens in Excel) or KML (Google Earth), or print a clean copy
 - 🧭 Reads vendor coordinates in any common format, including degrees-minutes-seconds
 
 ### Made for
@@ -79,7 +82,7 @@ Start from [`templates/sites-template.xlsx`](templates/sites-template.xlsx), or 
 
 Coordinates can be in any common format: `28.135394, 76.650181`, `Lat 28.186815, Long 76.722692`, `28.30119° 76.872404°`, or `Lat 28°10'58.4895"N, Long 76°43'3.3067"E`. Money such as `₹1,50,000` or `Rs. 24000` is read as a number. Total rows and Area columns are skipped; the planner works them out.
 
-The workbook's optional **Plan** sheet sets the title, logo, currency, your base, the radius rings and city markers (`City` rows such as `Manesar: 28.3540, 76.9395`); the **Groups** sheet sets group colours. Prefer a text file? [`examples/aaj-swift-nh48/plan.yaml`](examples/aaj-swift-nh48/plan.yaml) shows every field, and [packages/core](packages/core/README.md) lists the rules.
+The workbook's optional **Plan** sheet sets the title, logo, currency, your base, the radius rings and pins (`City`, `Store`, `Dealer`, `Competitor`, `Customer` or `Pin` rows such as `Manesar: 28.3540, 76.9395`); the **Groups** sheet sets group colours. Prefer a text file? [`examples/aaj-swift-nh48/plan.yaml`](examples/aaj-swift-nh48/plan.yaml) shows every field, and [packages/core](packages/core/README.md) lists the rules.
 
 ### How costs are worked out
 - Area = width × height × quantity.
@@ -93,6 +96,7 @@ The workbook's optional **Plan** sheet sets the title, logo, currency, your base
 - It needs the internet only for **map tiles** and the Leaflet map script.
 - Open it in a normal browser. It does **not** work inside chat-app or AI-assistant previews (including Claude.ai artifacts), which block map tiles from outside hosts: download it first.
 - Anyone with the file can read the rates in it. Share it only with people who should see them.
+- What a viewer does on the page (their own pins, ring sizes, shortlist) is kept in their browser only. It never changes the file or what anyone else sees; the shortlist reaches others when they send it on WhatsApp or copy it.
 
 ## Map tiles and licensing
 

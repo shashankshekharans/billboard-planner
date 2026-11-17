@@ -166,3 +166,10 @@ test("Plan details has a Pins section with a type for each pin", async ({ page }
   await expect(f.locator(".place.k-store b")).toHaveText("Sohna store");
   await expect(f.locator(".legend")).toContainText("Store");
 });
+
+test("exports work inside the app's preview", async ({ page }) => {
+  await openExample(page);
+  const f = page.frameLocator('iframe[title="Plan page preview"]');
+  const [d] = await Promise.all([page.waitForEvent("download"), f.getByRole("button", { name: "Download CSV" }).click()]);
+  expect(d.suggestedFilename()).toBe("billboard-plan.csv");
+});
