@@ -21,6 +21,8 @@ export interface PlanDraft {
   map?: { default_view?: "satellite" | "road"; providers?: Record<string, unknown> };
   bases?: BaseDraft[];
   rings?: { center: { coords?: string; base?: string; label?: string }; radii_km: number[]; visible?: boolean };
+  pins?: { name: string; kind?: string; coords?: string }[];
+  /** Older plan files; normaliseDraft turns them into pins of kind "city". */
   cities?: { name: string; coords?: string }[];
   groups: GroupDraft[];
   notes?: string[];
@@ -121,7 +123,8 @@ export function normaliseDraft(file: FileDraft): FileDraft {
       ...plan,
       ...(plan.bases && { bases: plan.bases.map(fix) }),
       ...(plan.rings && { rings: { ...plan.rings, center: fix(plan.rings.center) } }),
-      ...(plan.cities && { cities: plan.cities.map(fix) })
+      ...((plan.pins || plan.cities) && { pins: [...(plan.pins ?? []), ...(plan.cities ?? []).map(c => ({ ...c, kind: "city" }))].map(fix) }),
+      cities: undefined
     }
   };
 }

@@ -29,7 +29,8 @@ const PLAN = [
   ["Ring label", "", "Name of the ring centre, e.g. Gurgaon (\"20 km from Gurgaon\")"],
   ["Ring radii (km)", "", "e.g. 20, 50"],
   ["Show rings", "Yes", "Yes or No: are the rings on when the page opens"],
-  ["City", "", "A blue city marker with its name, written as Name: coordinates, e.g. Manesar: 28.3540, 76.9395. Add more City rows for more cities"],
+  ["City", "", "A pin on the map, written as Name: coordinates, e.g. Manesar: 28.3540, 76.9395. Add more rows for more pins"],
+  ["Store", "", "Your store or showroom as a pin (purple), e.g. Sohna store: 28.2467, 77.0656. Rows named Dealer, Competitor, Customer or Pin work the same way"],
   ["Note", "", "A line under the table. Add more Note rows for more lines"],
   ["Note", "", ""]
 ];

@@ -102,9 +102,45 @@ test("satellite / map toggle, rings checkbox and Show all sites", async ({ page 
   await expect.poll(() => leaflet<number>(page, "map.getZoom()")).toBeLessThan(13);
 });
 
-test("city markers for Gurgaon and Manesar, with a legend entry", async ({ page }) => {
-  await expect(page.locator(".city b")).toHaveText(["Gurgaon", "Manesar"]);
+test("planner pins (Gurgaon and Manesar, kind city) with a legend entry per kind", async ({ page }) => {
+  await expect(page.locator(".place.k-city b")).toHaveText(["Gurgaon", "Manesar"]);
   await expect(page.locator(".legend")).toContainText("City");
+});
+
+async function addMyPin(page: Page, name: string, at = { x: 300, y: 150 }) {
+  await page.getByRole("button", { name: "Add a pin" }).click();
+  const map = (await page.locator("#map").boundingBox())!;
+  await page.mouse.click(map.x + at.x, map.y + at.y);
+  await page.getByLabel("Pin name").fill(name);
+  await page.getByRole("button", { name: "Save pin" }).click();
+}
+
+test("a viewer can add their own pin; it is escaped, kept after reload, and can be removed", async ({ page }) => {
+  await addMyPin(page, "<b>Store & Co</b>");
+  const mine = page.locator(".place.mine b");
+  await expect(mine).toHaveText(["<b>Store & Co</b>"]);
+  await expect(page.locator("#mypins-list")).toContainText("<b>Store & Co</b>");
+  await page.reload();
+  await expect(page.locator(".pin")).toHaveCount(8);
+  await expect(mine).toHaveText(["<b>Store & Co</b>"]);
+  await page.getByRole("button", { name: "Remove <b>Store & Co</b>" }).click();
+  await expect(mine).toHaveCount(0);
+  await page.reload();
+  await expect(page.locator(".pin")).toHaveCount(8);
+  await expect(mine).toHaveCount(0);
+});
+
+test("adding a pin still works when the browser blocks storage", async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(window, "localStorage", { get() { throw new Error("blocked"); } });
+  });
+  const errors: string[] = [];
+  page.on("pageerror", e => errors.push(e.message));
+  await page.reload();
+  await expect(page.locator(".pin")).toHaveCount(8);
+  await addMyPin(page, "Depot");
+  await expect(page.locator(".place.mine b")).toHaveText(["Depot"]);
+  expect(errors).toEqual([]);
 });
 
 test("clicking the card photo opens it full size; arrows, Escape and the backdrop work", async ({ page }) => {
@@ -134,7 +170,9 @@ test("clicking the card photo opens it full size; arrows, Escape and the backdro
   await expect(lb).toBeHidden();
 });
 
-test("the built page reads exactly like the hand-made reference", async ({ page, browser }) => {
+// The reference predates the viewer tools (my pins, ring sliders, shortlist), so those controls are left out;
+// everything the reference shows must read the same.
+test("the built page reads like the hand-made reference", async ({ page, browser }) => {
   const snapshot = (p: Page) => p.evaluate(() => {
     const T = (s: string) => (document.querySelector(s) as HTMLElement | null)?.innerText.replace(/\s+/g, " ").trim() ?? "";
     const show = (0, eval)("showCard") as (n: number) => void, hide = (0, eval)("hideCard") as () => void;
@@ -142,8 +180,8 @@ test("the built page reads exactly like the hand-made reference", async ({ page,
     for (let n = 1; n <= 8; n++) { show(n); cards.push(T("#card")); }
     hide();
     return {
-      header: T("header.top"), legend: T(".legend"), stats: T("#stats"), thead: T("thead"), rows: T("#rows"), foot: T("tfoot"), notes: T(".notes"),
-      cities: [...document.querySelectorAll(".city b")].map(e => e.textContent), rings: [...document.querySelectorAll(".ring-label")].map(e => e.textContent), cards
+      header: T("header.top"), legend: [...document.querySelectorAll(".legend span")].filter(e => !e.closest(".mypins, .ringctl")).map(e => e.textContent!.trim()), stats: T("#stats"), thead: T("thead"), rows: T("#rows"), foot: T("tfoot"), notes: T(".notes"),
+      cities: [...document.querySelectorAll(".city b, .place.k-city b")].map(e => e.textContent), rings: [...document.querySelectorAll(".ring-label")].map(e => e.textContent), cards
     };
   });
   const ref = await browser.newPage();

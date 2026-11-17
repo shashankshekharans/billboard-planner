@@ -183,10 +183,31 @@ td a:hover { text-decoration: underline; }
 }
 [hidden] { display: none !important; }
 /* City markers: blue dot with a name label (orientation only) */
-.city { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
-.city i { width: 16px; height: 16px; border-radius: 50%; background: #1d4ed8; border: 3px solid #fff; box-shadow: 0 0 0 2px #1d4ed8, 0 2px 6px rgba(0,0,0,.5); flex: none; }
-.city b { font: 700 14px/1 var(--font-display); letter-spacing: .06em; text-transform: uppercase; color: #142019; background: #fff; padding: 4px 8px; border-radius: 4px; box-shadow: 0 2px 6px rgba(0,0,0,.4); }
-.legend .city-key { width: 12px; height: 12px; border-radius: 50%; background: #1d4ed8; border: 2px solid #fff; box-shadow: 0 0 0 1px #1d4ed8; }
+.place { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+.place i { width: 16px; height: 16px; border-radius: 50%; background: var(--pc); border: 3px solid #fff; box-shadow: 0 0 0 2px var(--pc), 0 2px 6px rgba(0,0,0,.5); flex: none; }
+.place b { font: 700 14px/1 var(--font-display); letter-spacing: .06em; text-transform: uppercase; color: #142019; background: #fff; padding: 4px 8px; border-radius: 4px; box-shadow: 0 2px 6px rgba(0,0,0,.4); }
+.place.mine i { background: #fff; border: 3px dashed var(--pc); box-shadow: 0 2px 6px rgba(0,0,0,.5); }
+.place.mine b { font-style: italic; }
+.legend .place-key { width: 12px; height: 12px; border-radius: 50%; background: var(--pc); border: 2px solid #fff; box-shadow: 0 0 0 1px var(--pc); }
+.legend .place-key.mine { background: #fff; border: 2px dashed var(--pc); box-shadow: none; }
+/* Viewer's own pins */
+.mypins { display: grid; gap: 6px; border-top: 1px solid var(--line); padding-top: 6px; }
+.mypins-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.mypins ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; max-height: 120px; overflow: auto; }
+.mypins li { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.mypins li span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 180px; }
+.mini-btn { font: 600 12px/1 var(--font-body); border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 6px; padding: 6px 9px; cursor: pointer; }
+.mini-btn:hover { border-color: var(--muted); }
+.mini-btn.x { border: 0; padding: 4px 6px; color: var(--muted); font-size: 15px; }
+.mini-btn[aria-pressed="true"] { background: var(--ink); color: var(--surface); border-color: var(--ink); }
+#map.placing { cursor: crosshair; }
+.pin-form { position: absolute; z-index: 750; left: 50%; top: 12px; transform: translateX(-50%); width: min(320px, calc(100% - 24px)); background: var(--surface); border-radius: 10px; box-shadow: 0 8px 28px rgba(0,0,0,.35); padding: 12px; display: grid; gap: 8px; font-size: 13px; }
+.pin-form label { display: grid; gap: 4px; font-weight: 600; }
+.pin-form input { font: inherit; font-weight: 400; border: 1px solid var(--line); border-radius: 6px; padding: 8px 9px; }
+.pin-form input:focus { outline: 2px solid var(--accent); outline-offset: 0; }
+.pin-form .row { display: flex; gap: 8px; justify-content: flex-end; }
+.pin-form .save { background: var(--accent); color: #fff; border-color: var(--accent); }
+.map-hint { position: absolute; z-index: 600; left: 50%; top: 12px; transform: translateX(-50%); background: var(--ink); color: #fff; font-size: 13px; padding: 8px 12px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,.3); }
 /* Full-size photo viewer */
 .card-photo img { cursor: zoom-in; }
 .lightbox { position: fixed; inset: 0; z-index: 5000; background: rgba(8,12,10,.92); display: grid; place-items: center; padding: max(56px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(24px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); }
@@ -271,7 +292,22 @@ const SITES = (PLAN.sites || []).map(s => ({ qty: 1, days: 30, ...s, photos: s.p
 const BASES = PLAN.bases || [];
 const BASE = BASES.find(b => b.distanceFrom) || null;       // distances are measured from this base
 const BASE_LABEL = BASE ? (BASE.label || "base") : "";
-const CITIES = PLAN.cities || [];                          // named city markers, for orientation
+// Named places on the map, for orientation. Older pages carried "cities"; they are pins of kind city.
+const PINS = PLAN.pins || (PLAN.cities || []).map(c => ({ ...c, kind: "city" }));
+const PIN_KIND = {
+  city: { label: "City", color: "#1d4ed8" }, store: { label: "Store", color: "#7c3aed" }, dealer: { label: "Dealer", color: "#0f766e" },
+  competitor: { label: "Competitor", color: "#b91c1c" }, customer: { label: "Customer", color: "#c2410c" }, other: { label: "Place", color: "#475569" }
+};
+const kindOf = k => PIN_KIND[k] || PIN_KIND.other;
+const MINE_COLOR = "#142019";
+
+/* What a viewer adds (own pins, ring settings, shortlist) is kept in this browser only, per plan title.
+   Storage can be blocked (private mode, sandboxed preview): then it lasts for this visit. */
+const STATE_KEY = "bbp:v1:" + (PLAN.title || "Billboard Plan");
+const VIEW = (() => { try { const v = JSON.parse(localStorage.getItem(STATE_KEY) || "{}"); return v && typeof v === "object" ? v : {}; } catch { return {}; } })();
+if (!Array.isArray(VIEW.pins)) VIEW.pins = [];
+VIEW.pins = VIEW.pins.filter(p => p && typeof p.name === "string" && Number.isFinite(p.lat) && Number.isFinite(p.lng));
+const saveView = () => { try { localStorage.setItem(STATE_KEY, JSON.stringify(VIEW)); } catch { /* kept for this visit only */ } };
 const RINGS = PLAN.rings && PLAN.rings.center && (PLAN.rings.radiiKm || []).length ? PLAN.rings : null;
 const DAYS = SITES.length && SITES.every(s => s.days === SITES[0].days) ? SITES[0].days : null;
 const TOTAL_LABEL = DAYS ? `Total, ${DAYS} days` : "Total";
@@ -317,8 +353,10 @@ const legendEl = document.getElementById("legend");
 legendEl.innerHTML = `<summary>Map key</summary><div class="legend-body">` +
   GROUPS.map(g => `<span><i class="swatch ${gcls(g.id)}"></i>${esc(g.name)}</span>`).join("") +
   BASES.map(b => `<span><i class="wh-key"></i>${esc(b.legendLabel || b.name)}</span>`).join("") +
-  (CITIES.length ? `<span><i class="city-key"></i>City</span>` : "") +
-  (RINGS ? `<label for="rings"><input type="checkbox" id="rings"${RINGS.visible === false ? "" : " checked"}> ${esc(listJoin(RINGS.radiiKm.map(km => km + " km")))} from ${esc(ringPlace)}</label>` : "") + `</div>`;
+  [...new Set(PINS.map(p => PIN_KIND[p.kind] ? p.kind : "other"))].map(k => `<span><i class="place-key" style="--pc:${kindOf(k).color}"></i>${kindOf(k).label}</span>`).join("") +
+  (RINGS ? `<label for="rings"><input type="checkbox" id="rings"${RINGS.visible === false ? "" : " checked"}> ${esc(listJoin(RINGS.radiiKm.map(km => km + " km")))} from ${esc(ringPlace)}</label>` : "") +
+  `<div class="mypins"><div class="mypins-head"><span><i class="place-key mine" style="--pc:${MINE_COLOR}"></i> My pins</span><button type="button" class="mini-btn" id="add-pin" aria-pressed="false">Add a pin</button></div><ul id="mypins-list" aria-label="My pins"></ul></div>` +
+  `</div>`;
 if (matchMedia("(max-width: 640px)").matches) legendEl.open = false;   // phones: folded, so it does not cover the map
 
 /* Map */
@@ -349,7 +387,7 @@ setView(!(PLAN.map && PLAN.map.defaultView === "road"));
 bSat.onclick = () => setView(true);
 bMap.onclick = () => setView(false);
 
-const bounds = L.latLngBounds(SITES.map(s => [s.lat, s.lng]).concat(BASES.map(b => [b.lat, b.lng]), CITIES.map(c => [c.lat, c.lng])));
+const bounds = L.latLngBounds(SITES.map(s => [s.lat, s.lng]).concat(BASES.map(b => [b.lat, b.lng]), PINS.map(c => [c.lat, c.lng])));
 
 if (RINGS) {
   const c0 = RINGS.center;
@@ -362,10 +400,57 @@ if (RINGS) {
   document.getElementById("rings").onchange = e => e.target.checked ? rings.addTo(map) : map.removeLayer(rings);
 }
 
-CITIES.forEach(c => L.marker([c.lat, c.lng], {
-  icon: L.divIcon({ className: "", html: `<div class="city"><i></i><b>${esc(c.name)}</b></div>`, iconSize: [120, 24], iconAnchor: [8, 12] }),
-  zIndexOffset: -500, keyboard: false, interactive: false, title: c.name
-}).addTo(map));
+const placeMarker = (p, mine) => L.marker([p.lat, p.lng], {
+  icon: L.divIcon({ className: "", html: `<div class="place k-${PIN_KIND[p.kind] ? p.kind : "other"}${mine ? " mine" : ""}" style="--pc:${mine ? MINE_COLOR : kindOf(p.kind).color}"><i></i><b>${esc(p.name)}</b></div>`, iconSize: [120, 24], iconAnchor: [8, 12] }),
+  zIndexOffset: -500, keyboard: false, interactive: false, title: p.name
+});
+PINS.forEach(p => placeMarker(p, false).addTo(map));
+
+/* Viewer's own pins: "Add a pin", tap the map, name it */
+const myPinLayer = L.layerGroup().addTo(map);
+const myList = document.getElementById("mypins-list"), addBtn = document.getElementById("add-pin");
+function drawMyPins() {
+  myPinLayer.clearLayers();
+  VIEW.pins.forEach(p => placeMarker(p, true).addTo(myPinLayer));
+  myList.innerHTML = VIEW.pins.map((p, i) => `<li><span title="${esc(p.name)}">${esc(p.name)}</span><button type="button" class="mini-btn x" data-i="${i}" aria-label="Remove ${esc(p.name)}">×</button></li>`).join("");
+  document.dispatchEvent(new Event("bbp:pins"));
+}
+myList.addEventListener("click", e => {
+  const b = e.target.closest("button[data-i]"); if (!b) return;
+  VIEW.pins.splice(+b.dataset.i, 1); saveView(); drawMyPins();
+});
+let placing = false, hintEl = null;
+function stopPlacing() {
+  placing = false; addBtn.setAttribute("aria-pressed", "false"); addBtn.textContent = "Add a pin";
+  document.getElementById("map").classList.remove("placing"); if (hintEl) { hintEl.remove(); hintEl = null; }
+}
+addBtn.onclick = () => {
+  if (placing) { stopPlacing(); return; }
+  placing = true; addBtn.setAttribute("aria-pressed", "true"); addBtn.textContent = "Cancel";
+  document.getElementById("map").classList.add("placing");
+  hintEl = document.createElement("div"); hintEl.className = "map-hint"; hintEl.setAttribute("role", "status");
+  hintEl.textContent = "Tap the map where the pin goes";
+  document.querySelector(".map-shell").append(hintEl);
+};
+map.on("click", e => {
+  if (!placing) return;
+  stopPlacing();
+  const form = document.createElement("form"); form.className = "pin-form";
+  form.innerHTML = `<label>Pin name <input name="n" maxlength="60" required autocomplete="off" placeholder="e.g. Sohna store"></label><div class="row"><button type="button" class="mini-btn">Cancel</button><button class="mini-btn save">Save pin</button></div>`;
+  L.DomEvent.disableClickPropagation(form);
+  document.querySelector(".map-shell").append(form);
+  const input = form.querySelector("input"); input.focus();
+  const close = () => { form.remove(); addBtn.focus(); };
+  form.querySelector("button[type=button]").onclick = close;
+  form.addEventListener("keydown", ev => { if (ev.key === "Escape") close(); });
+  form.onsubmit = ev => {
+    ev.preventDefault();
+    const name = input.value.trim(); if (!name) return;
+    VIEW.pins.push({ name, lat: +e.latlng.lat.toFixed(6), lng: +e.latlng.lng.toFixed(6) });
+    saveView(); drawMyPins(); close();
+  };
+});
+drawMyPins();
 
 BASES.forEach(b => {
   const chip = b.markerLogo

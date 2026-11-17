@@ -61,8 +61,8 @@ describe("AAJ Swift example built from plan.yaml matches the reference page", ()
     expect(built.plan.rings).toMatchObject({ center: { lat: ref.GURGAON.lat, lng: ref.GURGAON.lng, label: "Gurgaon" }, radiiKm: ref.RINGS_KM });
   });
 
-  it("has the same city markers", () => {
-    expect(built.plan.cities).toEqual(ref.CITIES);
+  it("has the same city markers (now pins of kind city)", () => {
+    expect(built.plan.pins).toEqual(ref.CITIES.map(c => ({ ...c, kind: "city" })));
   });
 
   it("gives the same distances from the warehouse (as shown, to 0.1 km)", () => {

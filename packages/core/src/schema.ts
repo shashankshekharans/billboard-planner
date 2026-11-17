@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { PIN_KINDS } from "./model.js";
 
 // Schema for a plan file (plan.yaml / plan.json), as written by people: snake_case, defaults filled in.
 // Objects are strict so a misspelt key ("widht_ft") is reported instead of silently ignored.
@@ -80,6 +81,12 @@ export const planSchema = z.strictObject({
       radii_km: z.array(positive).min(1),
       visible: z.boolean().default(true)
     }).optional(),
+    pins: z.array(z.strictObject({
+      name: text.min(1),
+      kind: z.enum(PIN_KINDS, { error: `Use one of: ${PIN_KINDS.join(", ")}` }).default("other"),
+      coords: coords.optional(), ...latLng
+    }).refine(hasPosition, positionMessage)).default([]),
+    /** Older plans: cities become pins of kind "city". */
     cities: z.array(z.strictObject({ name: text.min(1), coords: coords.optional(), ...latLng }).refine(hasPosition, positionMessage)).default([]),
     groups: z.array(z.strictObject({ id, name: text.min(1), color: hex, soft: hex.optional() })).min(1, "Add at least one group"),
     notes: z.array(text).default([])

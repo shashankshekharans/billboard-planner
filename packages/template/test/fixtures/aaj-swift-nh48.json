@@ -38,14 +38,16 @@
     ],
     "visible": true
   },
-  "cities": [
+  "pins": [
     {
       "name": "Gurgaon",
+      "kind": "city",
       "lat": 28.4595,
       "lng": 77.0266
     },
     {
       "name": "Manesar",
+      "kind": "city",
       "lat": 28.354,
       "lng": 76.9395
     }

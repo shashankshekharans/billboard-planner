@@ -43,8 +43,12 @@ export interface RingsData {
   visible: boolean;
 }
 
-/** A town or city shown as a named blue marker (orientation only; not a site or base). */
-export interface CityData { name: string; lat: number; lng: number }
+/** Kinds of named place a plan can pin; each has its own marker colour on the page. */
+export const PIN_KINDS = ["city", "store", "dealer", "competitor", "customer", "other"] as const;
+export type PinKind = typeof PIN_KINDS[number];
+
+/** A named place shown on the map for orientation (not a site or base): a city, a store, a competitor's board… */
+export interface PinData { name: string; kind: PinKind; lat: number; lng: number }
 
 export interface PlanData {
   title: string;
@@ -57,7 +61,7 @@ export interface PlanData {
   map: { defaultView: "satellite" | "road"; providers: { satellite: TileProvider; road: TileProvider } };
   bases: BaseData[];
   rings?: RingsData;
-  cities?: CityData[];
+  pins?: PinData[];
   groups: GroupData[];
   notes: string[];
   sites: SiteData[];

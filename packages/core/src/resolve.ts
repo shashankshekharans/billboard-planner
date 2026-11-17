@@ -1,6 +1,6 @@
 import { CoordError, parseCoords, type LatLng } from "./coords.js";
 import { findOutliers } from "./geo.js";
-import type { BaseData, PlanData, SiteData, TileProvider } from "./model.js";
+import type { BaseData, PinData, PlanData, SiteData, TileProvider } from "./model.js";
 import { planSchema, type ParsedPlanFile } from "./schema.js";
 
 /** A plan file with problems. `issues` holds one readable line per problem. */
@@ -81,7 +81,10 @@ export function resolvePlan(input: unknown): { plan: PlanData; warnings: string[
     if (center) rings = { center, radiiKm: p.rings.radii_km, visible: p.rings.visible };
   }
 
-  const cities = p.cities.map((c, i) => ({ name: c.name, ...position(c, ["plan", "cities", i]) }));
+  const pins: PinData[] = [
+    ...p.pins.map((c, i) => ({ name: c.name, kind: c.kind, ...position(c, ["plan", "pins", i]) })),
+    ...p.cities.map((c, i) => ({ name: c.name, kind: "city" as const, ...position(c, ["plan", "cities", i]) }))
+  ];
 
   const groupIds = new Set(p.groups.map(g => g.id));
   const siteData: SiteData[] = sites.map((s, i) => {
@@ -110,7 +113,7 @@ export function resolvePlan(input: unknown): { plan: PlanData; warnings: string[
       currency: p.currency, locale: p.locale, theme: p.theme,
       brand: { primary: p.brand.primary, ...(p.brand.accent && { accent: p.brand.accent }) },
       map: { defaultView: p.map.default_view, providers: { satellite: tile(p.map.providers.satellite), road: tile(p.map.providers.road) } },
-      bases, ...(rings && { rings }), ...(cities.length && { cities }),
+      bases, ...(rings && { rings }), ...(pins.length && { pins }),
       groups: p.groups.map(g => ({ id: g.id, name: g.name, color: g.color, ...(g.soft && { soft: g.soft }) })),
       notes: p.notes,
       sites: siteData

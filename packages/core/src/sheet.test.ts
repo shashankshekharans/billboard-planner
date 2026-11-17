@@ -131,11 +131,20 @@ describe("sheetToPlan: other column shapes", () => {
 describe("sheetToPlan: City setting", () => {
   it("reads City rows as Name: coordinates", () => {
     const { file, warnings } = sheetToPlan({ sites: VENDOR_ROWS, settings: [["City", "Gurgaon: 28.4595, 77.0266"], ["City", "Manesar = Lat 28.3540, Long 76.9395"], ["City", "28.1, 76.2"]] });
-    expect(file.plan.cities).toEqual([{ name: "Gurgaon", coords: "28.4595, 77.0266" }, { name: "Manesar", coords: "Lat 28.3540, Long 76.9395" }]);
+    expect(file.plan.pins).toEqual([{ name: "Gurgaon", kind: "city", coords: "28.4595, 77.0266" }, { name: "Manesar", kind: "city", coords: "Lat 28.3540, Long 76.9395" }]);
     expect(warnings.some(w => w.startsWith('City "28.1, 76.2" ignored'))).toBe(true);
   });
   it("accepts several cities in one cell, separated by ;", () => {
     const { file } = sheetToPlan({ sites: VENDOR_ROWS, settings: [["Cities", "Gurgaon: 28.4595, 77.0266; Manesar: 28.3540, 76.9395"]] });
-    expect(file.plan.cities).toEqual([{ name: "Gurgaon", coords: "28.4595, 77.0266" }, { name: "Manesar", coords: "28.3540, 76.9395" }]);
+    expect(file.plan.pins).toEqual([{ name: "Gurgaon", kind: "city", coords: "28.4595, 77.0266" }, { name: "Manesar", kind: "city", coords: "28.3540, 76.9395" }]);
+  });
+  it("reads Store, Dealer, Competitor, Customer and Pin rows as pins of that kind", () => {
+    const { file } = sheetToPlan({ sites: VENDOR_ROWS, settings: [
+      ["Store", "Sohna store: 28.25, 77.06"], ["Dealer", "Rewari dealer: 28.19, 76.61"],
+      ["Competitor", "Rival unipole: 28.3, 76.9"], ["Customer", "Big client: 28.4, 77.0"], ["Pin", "Toll plaza: 28.36, 76.94"]
+    ] });
+    expect((file.plan.pins as { kind: string; name: string }[]).map(p => [p.kind, p.name])).toEqual([
+      ["store", "Sohna store"], ["dealer", "Rewari dealer"], ["competitor", "Rival unipole"], ["customer", "Big client"], ["other", "Toll plaza"]
+    ]);
   });
 });

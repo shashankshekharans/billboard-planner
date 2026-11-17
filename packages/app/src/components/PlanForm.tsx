@@ -4,6 +4,7 @@ import { imageFor, type BaseDraft, type PlanDraft, type Workspace } from "../wor
 import { Color, Coords, ImagePick, Text } from "./fields";
 
 type Rings = NonNullable<PlanDraft["rings"]>;
+const PIN_KIND_OPTIONS = [["city", "City"], ["store", "Store"], ["dealer", "Dealer"], ["competitor", "Competitor"], ["customer", "Customer"], ["other", "Other place"]] as const;
 type Patch<T> = Partial<T> | ((current: T) => Partial<T>);
 const apply = <T,>(patch: Patch<T>, current: T) => typeof patch === "function" ? patch(current) : patch;
 
@@ -22,6 +23,8 @@ export function PlanForm({ ws, onChange }: { ws: Workspace; onChange: (edit: (ws
     const current: Rings = { center: {}, radii_km: [20, 50], visible: true, ...pl.rings };
     return { rings: patch === null ? undefined : { ...current, ...apply(patch, current) } };
   });
+  const setPin = (i: number, patch: Partial<NonNullable<PlanDraft["pins"]>[number]>) =>
+    setPlan(pl => ({ pins: (pl.pins ?? []).map((x, k) => k === i ? { ...x, ...patch } : x) }));
   const setGroup = (i: number, patch: Partial<PlanDraft["groups"][number]>) =>
     setPlan(pl => ({ groups: pl.groups.map((g, k) => k === i ? { ...g, ...patch } : g) }));
   // Store an uploaded logo and point the plan at it, in one edit
@@ -124,18 +127,24 @@ export function PlanForm({ ws, onChange }: { ws: Workspace; onChange: (edit: (ws
       </fieldset>
 
       <fieldset>
-        <legend>Cities</legend>
-        <p class="hint">Blue markers with a name label, to help people find their way around the map.</p>
-        {(p.cities ?? []).map((c, i) => (
+        <legend>Pins</legend>
+        <p class="hint">Named places that help people read the map: cities, your stores and dealers, competitors' boards, big customers. Each type has its own colour.</p>
+        {(p.pins ?? []).map((c, i) => (
           <div class="city-row" key={i}>
-            <Text label="City name" value={c.name} placeholder="Manesar"
-              onInput={v => setPlan(pl => ({ cities: (pl.cities ?? []).map((x, k) => k === i ? { ...x, name: v } : x) }))} />
-            <Coords label="Coordinates" value={c.coords}
-              onInput={v => setPlan(pl => ({ cities: (pl.cities ?? []).map((x, k) => k === i ? { ...x, coords: v } : x) }))} />
-            <div><button class="btn quiet danger" type="button" onClick={() => setPlan(pl => ({ cities: (pl.cities ?? []).filter((_, k) => k !== i) }))}>Remove city</button></div>
+            <div class="row">
+              <Text label="Pin name" value={c.name} placeholder="Manesar"
+                onInput={v => setPin(i, { name: v })} />
+              <label class="field"><span>Type</span>
+                <select value={c.kind ?? "other"} onChange={e => { const kind = e.currentTarget.value; setPin(i, { kind }); }}>
+                  {PIN_KIND_OPTIONS.map(([value, label]) => <option value={value} key={value}>{label}</option>)}
+                </select>
+              </label>
+            </div>
+            <Coords label="Coordinates" value={c.coords} onInput={v => setPin(i, { coords: v })} />
+            <div><button class="btn quiet danger" type="button" onClick={() => setPlan(pl => ({ pins: (pl.pins ?? []).filter((_, k) => k !== i) }))}>Remove pin</button></div>
           </div>
         ))}
-        <div><button class="btn" type="button" onClick={() => setPlan(pl => ({ cities: [...(pl.cities ?? []), { name: "", coords: "" }] }))}>Add city</button></div>
+        <div><button class="btn" type="button" onClick={() => setPlan(pl => ({ pins: [...(pl.pins ?? []), { name: "", kind: "city", coords: "" }] }))}>Add pin</button></div>
       </fieldset>
 
       <fieldset>

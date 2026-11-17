@@ -132,15 +132,45 @@ describe("planToFile", () => {
   });
 });
 
-describe("resolvePlan: cities", () => {
-  it("reads city markers in any coordinate format", () => {
-    const { plan } = resolvePlan(minimal({ cities: [{ name: "Gurgaon", coords: "28.4595, 77.0266" }, { name: "Manesar", lat: 28.354, lng: 76.9395 }] }));
-    expect(plan.cities).toEqual([{ name: "Gurgaon", lat: 28.4595, lng: 77.0266 }, { name: "Manesar", lat: 28.354, lng: 76.9395 }]);
+describe("resolvePlan: pins", () => {
+  it("reads pins of each kind in any coordinate format", () => {
+    const { plan } = resolvePlan(minimal({ pins: [
+      { name: "Sohna store", kind: "store", coords: "28.25, 77.06" },
+      { name: "Rival board", kind: "competitor", lat: 28.3, lng: 76.9 },
+      { name: "Depot", coords: "28.2, 76.8" }
+    ] }));
+    expect(plan.pins).toEqual([
+      { name: "Sohna store", kind: "store", lat: 28.25, lng: 77.06 },
+      { name: "Rival board", kind: "competitor", lat: 28.3, lng: 76.9 },
+      { name: "Depot", kind: "other", lat: 28.2, lng: 76.8 }
+    ]);
   });
-  it("leaves cities out when there are none", () => {
-    expect(resolvePlan(minimal()).plan.cities).toBeUndefined();
+  it("still reads cities, as pins of kind city after the other pins", () => {
+    const { plan } = resolvePlan(minimal({
+      pins: [{ name: "Store", kind: "store", coords: "28.25, 77.06" }],
+      cities: [{ name: "Gurgaon", coords: "28.4595, 77.0266" }, { name: "Manesar", lat: 28.354, lng: 76.9395 }]
+    }));
+    expect(plan.pins).toEqual([
+      { name: "Store", kind: "store", lat: 28.25, lng: 77.06 },
+      { name: "Gurgaon", kind: "city", lat: 28.4595, lng: 77.0266 },
+      { name: "Manesar", kind: "city", lat: 28.354, lng: 76.9395 }
+    ]);
+    expect(plan).not.toHaveProperty("cities");
   });
-  it("reports a city without a usable position", () => {
-    expect(problems(minimal({ cities: [{ name: "Nowhere", coords: "somewhere" }] })).join("\n")).toMatch(/plan\.cities\[0\]\.coords: No coordinates found/);
+  it("leaves pins out when there are none", () => {
+    expect(resolvePlan(minimal()).plan.pins).toBeUndefined();
+  });
+  it("names the allowed kinds when a kind is unknown", () => {
+    expect(problems(minimal({ pins: [{ name: "X", kind: "warehouse", coords: "28, 77" }] })).join(" | "))
+      .toMatch(/plan\.pins\[0\]\.kind: .*city.*store.*dealer.*competitor.*customer.*other/);
+  });
+  it("reports a pin or city without a usable position", () => {
+    expect(problems(minimal({ cities: [{ name: "Nowhere", coords: "somewhere" }] })).join(" | ")).toMatch(/plan\.cities\[0\]\.coords: No coordinates found/);
+    expect(problems(minimal({ pins: [{ name: "Nowhere", coords: "somewhere" }] })).join(" | ")).toMatch(/plan\.pins\[0\]\.coords: No coordinates found/);
+  });
+  it("round-trips pins through planToFile", async () => {
+    const { planToFile } = await import("./tofile.js");
+    const { plan } = resolvePlan(minimal({ pins: [{ name: "Store", kind: "store", coords: "28.25, 77.06" }], cities: [{ name: "Gurgaon", coords: "28.4595, 77.0266" }] }));
+    expect(resolvePlan(planToFile(plan)).plan).toEqual(plan);
   });
 });

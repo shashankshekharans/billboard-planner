@@ -157,11 +157,30 @@ function settingsToPlan(rows: unknown[][], warnings: string[]): Record<string, u
   const rings: Record<string, unknown> = {};
   const center: Record<string, unknown> = {};
   const notes: string[] = [];
-  const cities: { name: string; coords: string }[] = [];
+  const pins: { name: string; kind: string; coords: string }[] = [];
+  // Plan sheet rows that add a pin, by setting name (key()) → pin kind
+  const PIN_ROWS: Record<string, string> = {
+    city: "city", cities: "city", town: "city", citymarker: "city",
+    store: "store", stores: "store", shop: "store", showroom: "store",
+    dealer: "dealer", dealers: "dealer", distributor: "dealer",
+    competitor: "competitor", competitors: "competitor", rival: "competitor",
+    customer: "customer", customers: "customer", client: "customer",
+    pin: "other", pins: "other", landmark: "other", place: "other"
+  };
   const yes = (v: string) => /^(y|yes|true|1|show|on)$/i.test(v);
   for (const [k, v] of rows) {
     const name = cellText(k), value = cellText(v);
     if (!name || !value || ["setting", "settings"].includes(key(name))) continue;
+    const pinKind = PIN_ROWS[key(name)];
+    if (pinKind) {
+      // "Manesar: 28.3540, 76.9395". Several pins: one row each, or separated by ;
+      for (const part of value.split(/\s*;\s*(?=[^\d\s-])/)) {
+        const m = part.match(/^([^:\d][^:]*?)\s*[:=]\s*(.+)$/);
+        if (m) pins.push({ name: m[1]!.trim(), kind: pinKind, coords: m[2]!.trim() });
+        else warnings.push(`${name} "${part}" ignored: write it as Name: coordinates, e.g. Manesar: 28.3540, 76.9395.`);
+      }
+      continue;
+    }
     switch (key(name)) {
       case "title": case "plantitle": plan.title = value; break;
       case "subtitle": plan.subtitle = value; break;
@@ -186,15 +205,6 @@ function settingsToPlan(rows: unknown[][], warnings: string[]): Record<string, u
         rings.radii_km = value.split(/[,;\s]+/).filter(Boolean).map(Number);
         break;
       case "showrings": rings.visible = yes(value); break;
-      case "city": case "cities": case "town": case "citymarker": {
-        // "Manesar: 28.3540, 76.9395". Several cities: one row each, or separated by ;
-        for (const part of value.split(/\s*;\s*(?=[^\d\s-])/)) {
-          const m = part.match(/^([^:\d][^:]*?)\s*[:=]\s*(.+)$/);
-          if (m) cities.push({ name: m[1]!.trim(), coords: m[2]!.trim() });
-          else warnings.push(`City "${part}" ignored: write it as Name: coordinates, e.g. Manesar: 28.3540, 76.9395.`);
-        }
-        break;
-      }
       case "note": case "notes": notes.push(...value.split(/\n+/).map(t => t.trim()).filter(Boolean)); break;
       default: warnings.push(`Unknown setting "${name}" ignored.`);
     }
@@ -205,6 +215,6 @@ function settingsToPlan(rows: unknown[][], warnings: string[]): Record<string, u
     plan.rings = { center, radii_km: rings.radii_km ?? [], visible: rings.visible ?? true };
   }
   if (notes.length) plan.notes = notes;
-  if (cities.length) plan.cities = cities;
+  if (pins.length) plan.pins = pins;
   return plan;
 }

@@ -147,3 +147,22 @@ test("Plan details shows the example warehouse's coordinates", async ({ page }) 
   const base = page.locator("fieldset", { hasText: "Your base" });
   await expect(base.getByLabel("Coordinates")).toHaveValue("28.24132198237465, 76.9355599373958");
 });
+
+test("Plan details has a Pins section with a type for each pin", async ({ page }) => {
+  await page.goto("/#example");
+  await expect(page.frameLocator('iframe[title="Plan page preview"]').locator(".pin")).toHaveCount(8);
+  page.once("dialog", d => d.accept());
+  await page.getByRole("button", { name: "Duplicate as my plan" }).click();
+  await page.getByRole("tab", { name: "Plan details" }).click();
+  const pins = page.locator("fieldset", { hasText: "Pins" });
+  await expect(pins.getByLabel("Pin name")).toHaveCount(2);
+  await expect(pins.getByLabel("Pin name").first()).toHaveValue("Gurgaon");
+  await expect(pins.getByLabel("Type").first()).toHaveValue("city");
+  await pins.getByRole("button", { name: "Add pin" }).click();
+  await pins.getByLabel("Pin name").nth(2).fill("Sohna store");
+  await pins.getByLabel("Coordinates").nth(2).fill("28.2467, 77.0656");
+  await pins.getByLabel("Type").nth(2).selectOption("store");
+  const f = page.frameLocator('iframe[title="Plan page preview"]');
+  await expect(f.locator(".place.k-store b")).toHaveText("Sohna store");
+  await expect(f.locator(".legend")).toContainText("Store");
+});
