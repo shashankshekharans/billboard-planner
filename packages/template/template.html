@@ -94,6 +94,22 @@ body.resizing { user-select: none; cursor: ns-resize; }
 .specs dt { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .05em; }
 .specs dd { margin: 0; font-weight: 600; }
 .card-total { display: flex; justify-content: space-between; align-items: baseline; border-top: 1px solid var(--line); padding-top: 10px; }
+/* Shortlist */
+.shortlist-btn { justify-self: start; font: 600 13px/1 var(--font-body); border: 1.5px solid var(--accent); color: var(--accent); background: var(--surface); border-radius: 999px; padding: 8px 14px; cursor: pointer; }
+.shortlist-btn[aria-pressed="true"] { background: var(--accent); color: #fff; }
+.sl { width: 18px; height: 18px; margin: 0 8px 0 0; vertical-align: middle; accent-color: var(--accent); cursor: pointer; }
+.pin.sl-on::after { content: ""; position: absolute; width: 12px; height: 12px; right: -4px; top: -4px; border-radius: 50%; background: #f5c400; border: 2px solid #fff; transform: rotate(45deg); }
+.pin { position: relative; }
+table.sl-only tr.site:not(.sl-on), table.sl-only tr.sub { display: none !important; }
+.slbar { position: fixed; z-index: 1500; left: 50%; bottom: max(14px, env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); display: flex; align-items: center; gap: 8px 12px; flex-wrap: wrap; justify-content: center;
+  width: max-content; max-width: calc(100% - 24px); background: var(--ink); color: #fff; border-radius: 12px; padding: 10px 12px 10px 16px; box-shadow: 0 10px 30px rgba(0,0,0,.35); font-size: 14px; }
+.slbar b { font: 700 18px/1 var(--font-display); white-space: nowrap; }
+.slbar .sl-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+.slbar a, .slbar button { font: 600 13px/1 var(--font-body); border-radius: 8px; padding: 9px 12px; cursor: pointer; text-decoration: none; border: 1px solid rgba(255,255,255,.35); background: transparent; color: #fff; }
+.slbar a.wa { background: #1fa855; border-color: #1fa855; }
+.slbar button[aria-pressed="true"] { background: #fff; color: var(--ink); }
+.slbar a:focus-visible, .slbar button:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+body.has-slbar .table-sec .wrap { padding-bottom: 96px; }
 .card-total strong { font: 700 20px/1 var(--font-display); }
 .card-note { color: var(--muted); font-size: 11px; }
 .gmaps { font-weight: 600; color: var(--accent); text-decoration: none; }
@@ -130,7 +146,8 @@ td.num, th.num { text-align: right; white-space: nowrap; }
 tr.group td { padding-block: 6px; background: var(--gs); font: 700 14px/1.2 var(--font-display); text-transform: uppercase; letter-spacing: .03em; color: var(--gc); }
 tr.group td small { font: 500 13px var(--font-body); text-transform: none; letter-spacing: 0; color: var(--muted); margin-left: 8px; }
 tbody tr.site { cursor: pointer; transition: background .12s; }
-tbody tr.site:hover, tbody tr.site.hl { background: var(--hl); }
+tbody tr.site.hl { background: var(--hl); }
+@media (hover: hover) { tbody tr.site:hover { background: var(--hl); } }   /* touch screens: no sticky highlight after a tap */
 tbody tr.site:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 .idx { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; color: #fff; font: 700 13px/1 var(--font-display); background: var(--gc); }
 tr.sub td { font-weight: 600; background: var(--bg); }
@@ -166,7 +183,8 @@ td a:hover { text-decoration: underline; }
   tr.group, tr.group td { display: block; }
   tr.site { position: relative; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 14px; padding: 12px 12px 12px 46px; border-bottom: 1px solid var(--line); }
   tr.site td { border: 0; padding: 0; text-align: left; white-space: nowrap; font-size: 13.5px; }
-  tr.site td.c-idx { position: absolute; left: 12px; top: 12px; }
+  tr.site td.c-idx { position: absolute; left: 12px; top: 12px; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+  tr.site td.c-idx .sl { order: 2; margin: 0; width: 22px; height: 22px; }
   tr.site td.c-loc { flex: 1 1 calc(100% - 130px); min-width: 0; white-space: normal; order: -2; }   /* name and total share line 1; figures wrap below */
   tr.site td.c-total { flex: 0 0 auto; order: -1; text-align: right; font-size: 15px; }
   tr.site td.c-total::before { content: attr(data-label); display: block; font-size: 10.5px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
@@ -181,6 +199,9 @@ td a:hover { text-decoration: underline; }
   tr.sub td:empty, tfoot td:empty { display: none; }
   tr.sub td.c-loc, tfoot td.c-loc { flex-basis: 100%; }
   tfoot td.num { font-size: 17px; }
+  .slbar { width: calc(100% - 16px); bottom: max(8px, env(safe-area-inset-bottom, 0px)); padding: 8px 10px; gap: 6px; }
+  .slbar .sl-actions { flex-wrap: nowrap; width: 100%; }
+  .slbar a, .slbar button { flex: 1 1 auto; padding: 9px 6px; font-size: 12px; text-align: center; white-space: nowrap; }
 }
 [hidden] { display: none !important; }
 /* City markers: blue dot with a name label (orientation only) */
@@ -317,6 +338,10 @@ const VIEW = (() => { try { const v = JSON.parse(localStorage.getItem(STATE_KEY)
 if (!Array.isArray(VIEW.pins)) VIEW.pins = [];
 VIEW.pins = VIEW.pins.filter(p => p && typeof p.name === "string" && Number.isFinite(p.lat) && Number.isFinite(p.lng));
 const saveView = () => { try { localStorage.setItem(STATE_KEY, JSON.stringify(VIEW)); } catch { /* kept for this visit only */ } };
+// Shortlist: site IDs; IDs missing from this plan (an updated plan) are dropped
+const siteIds = new Set((PLAN.sites || []).map(s => String(s.id)));
+VIEW.shortlist = Array.isArray(VIEW.shortlist) ? [...new Set(VIEW.shortlist.map(String))].filter(id => siteIds.has(id)) : [];
+const isShort = s => VIEW.shortlist.includes(String(s.id));
 const RINGS = PLAN.rings && PLAN.rings.center && (PLAN.rings.radiiKm || []).length ? PLAN.rings : null;
 const DAYS = SITES.length && SITES.every(s => s.days === SITES[0].days) ? SITES[0].days : null;
 const TOTAL_LABEL = DAYS ? `Total, ${DAYS} days` : "Total";
@@ -563,6 +588,7 @@ function cardHTML(s, n) {
       <div><dt>Duration</dt><dd>${s.days} days</dd></div>
     </dl>
     <div class="card-total"><span>Total, ${s.days} days</span><strong>${cur(total(s))}${hasPrint(s) ? "" : "*"}</strong></div>
+    <button type="button" class="shortlist-btn" data-sl="${esc(s.id)}" aria-pressed="${isShort(s) ? "true" : "false"}">${isShort(s) ? "Shortlisted ✓" : "Add to shortlist"}</button>
     ${note ? `<span class="card-note">${esc(note)}</span>` : ""}
     <a class="gmaps" href="${gm(s)}" target="_blank" rel="noopener">Open in Google Maps ↗</a>
   </div>`;
@@ -654,7 +680,7 @@ GROUPS.forEach(g => {
   list.forEach(([s, n]) => {
     sub.rate += s.ratePerMonth; sub.print += hasPrint(s) ? s.printing : 0; sub.total += total(s); sub.area += area(s); if (!hasPrint(s)) sub.extra = true;
     html += `<tr class="site" id="row-${n}" data-n="${n}" tabindex="0">
-      <td class="c-idx"><span class="idx ${gcls(g.id)}">${n}</span></td>
+      <td class="c-idx"><input type="checkbox" class="sl" data-sl="${esc(s.id)}" aria-label="Shortlist site ${n}"${isShort(s) ? " checked" : ""}><span class="idx ${gcls(g.id)}">${n}</span></td>
       <td class="c-loc"><div class="loc">${esc(s.location)}</div>
         <div class="meta"><span>${esc(s.mediaVehicle || "—")}${s.qty > 1 ? " × " + s.qty : ""}</span>${s.facing ? `<span>Facing ${esc(s.facing)}</span>` : ""}<a href="${gm(s)}" target="_blank" rel="noopener">${s.lat.toFixed(6)}, ${s.lng.toFixed(6)} ↗</a></div></td>
       <td class="num" data-label="Size (ft)" data-short="Size" data-unit="ft">${s.widthFt} × ${s.heightFt}</td>
@@ -692,8 +718,8 @@ rowsEl.querySelectorAll("tr.site").forEach(r => {
     hideCard();
     map.once("moveend", () => showCard(n));
   };
-  r.addEventListener("click", e => { if (!e.target.closest("a")) go(); });
-  r.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); go(); } });
+  r.addEventListener("click", e => { if (!e.target.closest("a, input")) go(); });
+  r.addEventListener("keydown", e => { if (e.target.closest("input, a")) return; if (e.key === "Enter" || e.key === " ") { e.preventDefault(); go(); } });
   r.addEventListener("mouseenter", () => document.getElementById("pin-" + n).classList.add("active"));
   r.addEventListener("mouseleave", () => { if (openN !== n) document.getElementById("pin-" + n).classList.remove("active"); });
 });
@@ -722,6 +748,58 @@ rowsEl.querySelectorAll("tr.site").forEach(r => {
     if (e.key === "ArrowUp") { e.preventDefault(); setH(shell.offsetHeight - 40); }
   });
 })();
+/* Shortlist bar: count and total, Send on WhatsApp, Copy, Show shortlist only, Clear */
+const slBar = document.createElement("div");
+slBar.className = "slbar"; slBar.hidden = true; slBar.setAttribute("role", "region"); slBar.setAttribute("aria-label", "Shortlist");
+slBar.innerHTML = `<span id="sl-sum" aria-live="polite"></span><div class="sl-actions"><a class="wa" target="_blank" rel="noopener">Send on WhatsApp</a><button type="button" data-act="copy">Copy</button><button type="button" data-act="only" aria-pressed="false">Show shortlist only</button><button type="button" data-act="clear">Clear</button></div>`;
+document.body.append(slBar);
+const tableEl = document.querySelector(".table-sec table");
+function shortlistText() {
+  const chosen = SITES.map((s, i) => [s, i + 1]).filter(([s]) => isShort(s));
+  const sum = chosen.reduce((t, [s]) => t + total(s), 0), open = chosen.some(([s]) => !hasPrint(s));
+  const lines = chosen.map(([s, n]) => `${n}. ${s.location}${s.facing ? ` (facing ${s.facing})` : ""}, ${s.mediaVehicle || "site"} ${s.widthFt} × ${s.heightFt} ft: ${cur(total(s))}${hasPrint(s) ? "" : "*"} for ${s.days} days\n   ${gm(s)}`);
+  return `*${PLAN.title || "Billboard Plan"}*: shortlist of ${chosen.length} site${chosen.length === 1 ? "" : "s"}\n\n${lines.join("\n")}\n\nTotal: ${cur(sum)}${open ? "* (+ printing marked Extra/TBC)" : ""}`;
+}
+function syncShortlist() {
+  const chosen = SITES.filter(isShort);
+  const sum = chosen.reduce((t, s) => t + total(s), 0), open = chosen.some(s => !hasPrint(s));
+  slBar.hidden = !chosen.length;
+  document.body.classList.toggle("has-slbar", chosen.length > 0);
+  document.getElementById("sl-sum").innerHTML = `${chosen.length} site${chosen.length === 1 ? "" : "s"} · <b>${cur(sum)}${open ? "*" : ""}</b>`;
+  slBar.querySelector("a.wa").href = "https://wa.me/?text=" + encodeURIComponent(shortlistText());
+  SITES.forEach((s, i) => {
+    const on = isShort(s), n = i + 1;
+    const row = document.getElementById("row-" + n); if (row) row.classList.toggle("sl-on", on);
+    const pin = document.getElementById("pin-" + n); if (pin) pin.classList.toggle("sl-on", on);
+  });
+  document.querySelectorAll("[data-sl]").forEach(el => {
+    const on = VIEW.shortlist.includes(el.dataset.sl);
+    if (el.type === "checkbox") el.checked = on;
+    else { el.setAttribute("aria-pressed", on ? "true" : "false"); el.textContent = on ? "Shortlisted ✓" : "Add to shortlist"; }
+  });
+  if (!chosen.length) { tableEl.classList.remove("sl-only"); slBar.querySelector('[data-act="only"]').setAttribute("aria-pressed", "false"); }
+}
+function toggleShort(id, on) {
+  const set = new Set(VIEW.shortlist);
+  if (on ?? !set.has(id)) set.add(id); else set.delete(id);
+  VIEW.shortlist = SITES.map(s => String(s.id)).filter(x => set.has(x));   // keep plan order
+  saveView(); syncShortlist();
+}
+rowsEl.addEventListener("change", e => { const c = e.target.closest("input.sl"); if (c) toggleShort(c.dataset.sl, c.checked); });
+cardEl.addEventListener("click", e => { const b = e.target.closest(".shortlist-btn"); if (b && !justOpened()) toggleShort(b.dataset.sl); });
+slBar.addEventListener("click", async e => {
+  const b = e.target.closest("button[data-act]"); if (!b) return;
+  if (b.dataset.act === "clear") { VIEW.shortlist = []; saveView(); syncShortlist(); }
+  if (b.dataset.act === "only") { const on = !tableEl.classList.contains("sl-only"); tableEl.classList.toggle("sl-only", on); b.setAttribute("aria-pressed", on ? "true" : "false"); }
+  if (b.dataset.act === "copy") {
+    const text = shortlistText();
+    try { await navigator.clipboard.writeText(text); }
+    catch { const t = document.createElement("textarea"); t.value = text; document.body.append(t); t.select(); try { document.execCommand("copy"); } catch { /* nothing more to try */ } t.remove(); }
+    b.textContent = "Copied"; setTimeout(() => { b.textContent = "Copy"; }, 1500);
+  }
+});
+syncShortlist();
+
 /* Photo lightbox: click the card photo to see it full size */
 const lb = document.createElement("div");
 lb.className = "lightbox"; lb.hidden = true; lb.setAttribute("role", "dialog"); lb.setAttribute("aria-modal", "true"); lb.setAttribute("aria-label", "Enlarged photo");

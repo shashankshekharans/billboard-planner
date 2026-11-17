@@ -88,3 +88,19 @@ test.describe("generated page on a phone", () => {
     expect(await zoomOf(page)).toBe(17);
   });
 });
+
+test.describe("shortlist on a phone", () => {
+  test.skip(!existsSync(FILE), "Run npm run build:example first");
+  test("adding a site shows the shortlist bar at the bottom of the screen", async ({ page }) => {
+    await page.goto(pathToFileURL(FILE).href);
+    await expect(page.locator(".pin")).toHaveCount(8);
+    await page.locator("#pin-8").tap();
+    await page.waitForTimeout(600);
+    await page.locator("#card").getByRole("button", { name: "Add to shortlist" }).tap();
+    const bar = page.locator(".slbar");
+    await expect(bar).toContainText("1 site · ₹1,50,000*");
+    const box = (await bar.boundingBox())!, vh = page.viewportSize()!.height;
+    expect(box.y + box.height).toBeLessThanOrEqual(vh + 1);
+    expect(box.y + box.height).toBeGreaterThan(vh - 40);
+  });
+});

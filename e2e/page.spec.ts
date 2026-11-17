@@ -177,7 +177,11 @@ test("the built page reads like the hand-made reference", async ({ page, browser
     const T = (s: string) => (document.querySelector(s) as HTMLElement | null)?.innerText.replace(/\s+/g, " ").trim() ?? "";
     const show = (0, eval)("showCard") as (n: number) => void, hide = (0, eval)("hideCard") as () => void;
     const cards: string[] = [];
-    for (let n = 1; n <= 8; n++) { show(n); cards.push(T("#card")); }
+    for (let n = 1; n <= 8; n++) {
+      show(n);
+      document.querySelectorAll<HTMLElement>("#card .shortlist-btn").forEach(e => { e.style.display = "none"; });   // viewer control, not in the reference
+      cards.push(T("#card"));
+    }
     hide();
     return {
       header: T("header.top"), legend: [...document.querySelectorAll(".legend span")].filter(e => !e.closest(".mypins, .ringctl")).map(e => e.textContent!.trim()), stats: T("#stats"), thead: T("thead"), rows: T("#rows"), foot: T("tfoot"), notes: T(".notes"),
@@ -221,4 +225,35 @@ test("a viewer's own pin can be the ring centre", async ({ page }) => {
   await page.getByLabel("Ring centre").selectOption({ label: "My pin: Client office" });
   const pin = await page.evaluate(() => JSON.parse(localStorage.getItem("bbp:v1:Billboard Plan")!).pins[0]);
   expect(await leaflet<number>(page, "ringCircles[0].getLatLng().lat")).toBeCloseTo(pin.lat, 5);
+});
+
+test("shortlist: card button and table checkbox agree; bar totals; WhatsApp text; filter; remembered", async ({ page }) => {
+  await page.locator("#pin-6").hover();
+  const card = page.locator("#card");
+  await card.hover();
+  await card.getByRole("button", { name: "Add to shortlist" }).click();
+  await expect(card.getByRole("button", { name: "Shortlisted" })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByLabel("Shortlist site 6")).toBeChecked();
+  await page.getByLabel("Shortlist site 3").check();
+  const bar = page.locator(".slbar");
+  await expect(bar).toContainText("2 sites · ₹1,28,000");
+  const href = (await bar.getByRole("link", { name: "Send on WhatsApp" }).getAttribute("href"))!;
+  expect(href.startsWith("https://wa.me/?text=")).toBe(true);
+  const text = decodeURIComponent(href.slice("https://wa.me/?text=".length));
+  for (const part of ["Billboard Plan", "Delhi Road – Dharuheda", "Opp. N.H. Desi Hotel", "₹1,28,000", "https://www.google.com/maps?q=28.220244,76.796553"]) expect(text).toContain(part);
+  await bar.getByRole("button", { name: "Show shortlist only" }).click();
+  await expect(page.locator("tr.site:visible")).toHaveCount(2);
+  await page.reload();
+  await expect(page.locator(".pin")).toHaveCount(8);
+  await expect(page.locator(".slbar")).toContainText("2 sites · ₹1,28,000");
+  await page.locator(".slbar").getByRole("button", { name: "Clear" }).click();
+  await expect(page.locator(".slbar")).toBeHidden();
+  await expect(page.locator("tr.site:visible")).toHaveCount(8);
+});
+
+test("a shortlisted site missing from an updated plan is dropped", async ({ page }) => {
+  await page.evaluate(() => localStorage.setItem("bbp:v1:Billboard Plan", JSON.stringify({ shortlist: ["99", "6"] })));
+  await page.reload();
+  await expect(page.locator(".pin")).toHaveCount(8);
+  await expect(page.locator(".slbar")).toContainText("1 site · ₹96,000");
 });
