@@ -5,7 +5,7 @@ import { defineConfig, devices } from "@playwright/test";
 export default defineConfig({
   testDir: "e2e",
   timeout: 60_000,
-  expect: { timeout: 15_000 },
+  expect: { timeout: 25_000 },   // pages load Leaflet and map tiles from the internet; slow under a full parallel run
   fullyParallel: true,
   workers: process.env.CI ? 2 : 4,   // each test loads live map tiles; fewer at once keeps timings steady
   retries: process.env.CI ? 1 : 0,
