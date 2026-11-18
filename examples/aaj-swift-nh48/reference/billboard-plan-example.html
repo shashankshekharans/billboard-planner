@@ -145,6 +145,13 @@ td a:hover { text-decoration: underline; }
 @media (max-width: 640px) {
   .map-shell { height: 60vh; min-height: 360px; }
   .legend { bottom: 22px; font-size: 12px; }
+  /* Header: logo left, title right as on desktop; the subtitle runs full width underneath */
+  header.top .wrap { display: grid; grid-template-columns: minmax(0, auto) minmax(0, 1fr); align-items: center; gap: 6px 12px; padding-block: 10px; }
+  .logo, .logo img { height: 30px; }
+  .logo img { max-width: 100%; object-fit: contain; object-position: left center; }
+  .title { display: contents; }
+  .title h1 { grid-column: 2; text-align: right; font-size: clamp(18px, 5.8vw, 24px); }
+  .title p { grid-column: 1 / -1; margin: 0; text-align: right; font-size: 12px; }
 }
 [hidden] { display: none !important; }
 .city { display: flex; align-items: center; gap: 6px; white-space: nowrap; }

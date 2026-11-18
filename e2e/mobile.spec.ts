@@ -40,10 +40,12 @@ test.describe("generated page on a phone", () => {
     await page.waitForTimeout(300);
   });
 
-  test("fits the screen: no sideways scrolling, header stacked, legend folded", async ({ page }) => {
+  test("fits the screen: no sideways scrolling, logo left and title right, legend folded", async ({ page }) => {
     expect(await noSideScroll(page)).toBe(0);
     const logo = (await page.locator("#logo").boundingBox())!, title = (await page.locator(".title h1").boundingBox())!;
-    expect(title.y).toBeGreaterThan(logo.y + logo.height - 1);
+    expect(title.x).toBeGreaterThan(logo.x + logo.width);                        // side by side, as on desktop
+    expect(Math.abs((title.y + title.height / 2) - (logo.y + logo.height / 2))).toBeLessThan(10);
+    expect(title.x + title.width).toBeGreaterThan(page.viewportSize()!.width - 20);   // title against the right edge
     await expect(page.locator("#legend")).not.toHaveAttribute("open", "");
     await page.locator("#legend summary").tap();
     await expect(page.locator("#legend")).toHaveAttribute("open", "");

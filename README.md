@@ -28,7 +28,14 @@ Open the app and choose **View example** to explore a real plan: seven hoardings
 - ⬇️ **Exports**: download the table as CSV (opens in Excel) or KML (Google Earth), or print a clean copy
 - 🧭 Reads vendor coordinates in any common format, including degrees-minutes-seconds
 
-<img src="docs/images/aaj-swift-phone.jpg" width="292" alt="The same plan on a phone: tapping a pin opens the site card along the bottom of the map with its photo, the 30-day total and the distance from the warehouse">
+<p align="center">
+  <img src="docs/images/phone-map.jpg" width="250" alt="On a phone: the logo on the left and the plan title on the right, above the satellite map with site pins, the warehouse marker, Gurgaon and Manesar city pins and the radius rings">
+  &nbsp;
+  <img src="docs/images/phone-card.jpg" width="250" alt="Tapping a pin opens the site card along the bottom of the map with its photo, the 30-day total and the distance from the warehouse">
+  &nbsp;
+  <img src="docs/images/phone-shortlist.jpg" width="250" alt="The costing table as compact cards, with three sites ticked and the shortlist bar showing their total and Send on WhatsApp">
+</p>
+<p align="center"><em>On a phone: map and pins · site card · shortlist and send</em></p>
 
 ### Made for
 Marketing teams, media planners and agencies who buy outdoor (OOH) media: hoardings, unipoles, gantries and bus shelters.

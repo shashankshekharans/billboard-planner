@@ -183,11 +183,14 @@ td a:hover { text-decoration: underline; }
   .legend[open] { z-index: 1001; max-height: calc(100% - 34px); overflow: auto; }   /* above the zoom buttons, scrolls on short maps */
   .legend:not([open]) { padding: 6px 10px; }
 
-  /* Header: logo above the title */
-  header.top .wrap { flex-direction: column; align-items: flex-start; gap: 8px; padding-block: 10px; }
-  .logo, .logo img { height: 34px; }
-  .title { text-align: left; }
-  .title h1 { font-size: 26px; }
+  /* Header: logo left, title right as on desktop; the subtitle runs full width underneath */
+  header.top .wrap { display: grid; grid-template-columns: minmax(0, auto) minmax(0, 1fr); align-items: center; gap: 6px 12px; padding-block: 10px; }
+  .logo, .logo img { height: 30px; }
+  .logo img { max-width: 100%; object-fit: contain; object-position: left center; }
+  .logo-slot { height: 30px; padding: 0 10px; font-size: 11px; }
+  .title { display: contents; }
+  .title h1 { grid-column: 2; text-align: right; font-size: clamp(18px, 5.8vw, 24px); }
+  .title p { grid-column: 1 / -1; margin: 0; text-align: right; font-size: 12px; }
 
   /* Table: each site becomes a compact card (number, name and total on top; figures in one wrapped line) */
   table { min-width: 0; }
