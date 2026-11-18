@@ -12,7 +12,7 @@ writeFileSync("plan.html", renderPlan(plan));
 
 ## Plan data
 
-This is the resolved data the page renders, not the user-facing `plan.yaml`: coordinates are already decimal, and photos and logos should already be `data:` URIs for a self-contained file (plain paths or URLs also work if the files sit next to the page). `packages/core` will turn a `plan.yaml` or spreadsheet into this shape.
+This is the resolved data the page renders, not the user-facing `plan.yaml`: coordinates are already decimal, and photos and logos should already be `data:` URIs for a self-contained file (plain paths or URLs also work if the files sit next to the page). `packages/core` turns a `plan.yaml` or spreadsheet into this shape.
 
 | Field | Meaning |
 |---|---|
@@ -37,7 +37,7 @@ Each site: `{ id, group, mediaVehicle, location, facing, lat, lng, widthFt, heig
 
 ## What viewers can do on the page
 
-Kept in the viewer's browser only (`localStorage` key `bbp:v1:<title>`; if storage is blocked it lasts for the visit):
+Kept in the viewer's browser only (`localStorage` key `bbp:v1:<title>:<hash of the site locations>`, so two plans with the same title keep separate state; if storage is blocked it lasts for the visit):
 
 - **My pins:** Add a pin, tap the map, name it; listed under My pins in the map key with a remove button.
 - **Rings:** one slider per ring (1–100 km) and a centre picker (the plan's centre, any base, any pin, or their own pins), with the number of sites inside each ring; Reset rings returns to the plan.
