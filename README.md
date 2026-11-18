@@ -153,3 +153,15 @@ CI runs on every push and pull request, and every push to `main` republishes the
 ## Licence
 
 [MIT](LICENSE). The AAJ Swift name, logos and site photos in `examples/aaj-swift-nh48` belong to AAJ Swift and are included only as an example.
+
+---
+
+<h3 align="center">Made by Shashank</h3>
+
+<p align="center">
+  <a href="https://github.com/shashankshekharans"><img src="https://img.shields.io/badge/GitHub-shashankshekharans-181717?logo=github&logoColor=white" alt="GitHub: shashankshekharans"></a>
+  <a href="https://www.instagram.com/shashankshekharans/"><img src="https://img.shields.io/badge/Instagram-shashankshekharans-E4405F?logo=instagram&logoColor=white" alt="Instagram: shashankshekharans"></a>
+  <a href="https://x.com/SHASHANK_ANS"><img src="https://img.shields.io/badge/X-SHASHANK__ANS-000000?logo=x&logoColor=white" alt="X: SHASHANK_ANS"></a>
+</p>
+
+<p align="center"><sub>Built for AAJ Supply Chain Management. Free tools only: GitHub Pages and Actions, Leaflet, and Esri's free basemaps.</sub></p>
