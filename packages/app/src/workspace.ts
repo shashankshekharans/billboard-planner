@@ -260,7 +260,10 @@ export function checkCoords(text: string | undefined): { ok: true; lat: number; 
 
 const KEY = "billboard-planner:workspace";
 export async function loadSaved(): Promise<Workspace | undefined> {
-  try { return await get<Workspace>(KEY); } catch { return undefined; }
+  try {
+    const ws = await get<Workspace>(KEY);
+    return ws ? { ...ws, file: normaliseDraft(ws.file) } : undefined;   // plans saved before pins had cities
+  } catch { return undefined; }
 }
 export async function save(ws: Workspace) {
   try { await set(KEY, { ...ws, savedAt: Date.now() }); return true; } catch { return false; }

@@ -105,7 +105,7 @@ body.resizing { user-select: none; cursor: ns-resize; }
 .sl { width: 18px; height: 18px; margin: 0 8px 0 0; vertical-align: middle; accent-color: var(--accent); cursor: pointer; }
 .pin.sl-on::after { content: ""; position: absolute; width: 12px; height: 12px; right: -4px; top: -4px; border-radius: 50%; background: #f5c400; border: 2px solid #fff; transform: rotate(45deg); }
 .pin { position: relative; }
-table.sl-only tr.site:not(.sl-on), table.sl-only tr.sub { display: none !important; }
+table.sl-only tr.site:not(.sl-on), table.sl-only tr.sub, table.sl-only tr.group.sl-empty { display: none !important; }
 .slbar { position: fixed; z-index: 1500; left: 50%; bottom: max(14px, env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); display: flex; align-items: center; gap: 8px 12px; flex-wrap: wrap; justify-content: center;
   width: max-content; max-width: calc(100% - 24px); background: var(--ink); color: #fff; border-radius: 12px; padding: 10px 12px 10px 16px; box-shadow: 0 10px 30px rgba(0,0,0,.35); font-size: 14px; }
 .slbar b { font: 700 18px/1 var(--font-display); white-space: nowrap; }
@@ -380,7 +380,14 @@ const MINE_COLOR = "#142019";
 
 /* What a viewer adds (own pins, ring settings, shortlist) is kept in this browser only, per plan title.
    Storage can be blocked (private mode, sandboxed preview): then it lasts for this visit. */
-const STATE_KEY = "bbp:v1:" + (PLAN.title || "Billboard Plan");
+// Title plus a short hash of the site locations: two plans that share a title keep separate state,
+// while a re-sent plan with new rates or coordinates keeps the viewer's work.
+const planHash = (() => {
+  let h = 5381;
+  for (const ch of (PLAN.sites || []).map(s => s.location).sort().join("|")) h = ((h * 33) ^ ch.charCodeAt(0)) >>> 0;
+  return h.toString(36);
+})();
+const STATE_KEY = "bbp:v1:" + (PLAN.title || "Billboard Plan") + ":" + planHash;
 const VIEW = (() => { try { const v = JSON.parse(localStorage.getItem(STATE_KEY) || "{}"); return v && typeof v === "object" ? v : {}; } catch { return {}; } })();
 if (!Array.isArray(VIEW.pins)) VIEW.pins = [];
 VIEW.pins = VIEW.pins.filter(p => p && typeof p.name === "string" && Number.isFinite(p.lat) && Number.isFinite(p.lng));
@@ -788,7 +795,7 @@ GROUPS.forEach(g => {
   const list = SITES.map((s, i) => [s, i + 1]).filter(([s]) => s.group === g.id);
   if (!list.length) return;
   const sub = { rate: 0, print: 0, total: 0, area: 0, extra: false };
-  html += `<tr class="group ${gcls(g.id)}"><td colspan="${COLS}">${esc(g.name)}<small>${list.length} site${list.length > 1 ? "s" : ""}</small></td></tr>`;
+  html += `<tr class="group ${gcls(g.id)}" data-group="${esc(g.id)}"><td colspan="${COLS}">${esc(g.name)}<small>${list.length} site${list.length > 1 ? "s" : ""}</small></td></tr>`;
   list.forEach(([s, n]) => {
     sub.rate += s.ratePerMonth; sub.print += hasPrint(s) ? s.printing : 0; sub.total += total(s); sub.area += area(s); if (!hasPrint(s)) sub.extra = true;
     html += `<tr class="site" id="row-${n}" data-n="${n}" tabindex="0">
@@ -872,8 +879,20 @@ function shortlistText() {
   const lines = chosen.map(([s, n]) => `${n}. ${s.location}${s.facing ? ` (facing ${s.facing})` : ""}, ${s.mediaVehicle || "site"} ${s.widthFt} × ${s.heightFt} ft: ${cur(total(s))}${hasPrint(s) ? "" : "*"} for ${s.days} days\n   ${gm(s)}`);
   return `*${PLAN.title || "Billboard Plan"}*: shortlist of ${chosen.length} site${chosen.length === 1 ? "" : "s"}\n\n${lines.join("\n")}\n\nTotal: ${cur(sum)}${open ? "* (+ printing marked Extra/TBC)" : ""}`;
 }
+const footEl = document.getElementById("foot"), fullFoot = footEl.innerHTML;
+// While "Show shortlist only" is on, the footer totals the shortlist instead of every site
+function renderFoot() {
+  const chosen = SITES.filter(isShort);
+  if (!tableEl.classList.contains("sl-only") || !chosen.length) { footEl.innerHTML = fullFoot; return; }
+  const t = { area: 0, rate: 0, print: 0, total: 0, extra: false };
+  chosen.forEach(s => { t.area += area(s); t.rate += s.ratePerMonth; t.print += hasPrint(s) ? s.printing : 0; t.total += total(s); if (!hasPrint(s)) t.extra = true; });
+  const star = t.extra ? "*" : "";
+  footEl.innerHTML = `<tr><td></td><td class="c-loc">Shortlist · ${chosen.length} site${chosen.length === 1 ? "" : "s"}</td><td></td><td class="num" data-label="Area (sq ft)">${num(t.area)}</td><td></td>
+    <td class="num" data-label="Rate / month">${cur(t.rate)}</td><td class="num" data-label="Printing &amp; mounting">${cur(t.print)}${t.extra ? " + extra" : ""}</td><td class="num" data-label="${esc(TOTAL_LABEL)}">${cur(t.total)}${star}</td>${tail}</tr>`;
+}
 function syncShortlist() {
   const chosen = SITES.filter(isShort);
+  document.querySelectorAll("tr.group[data-group]").forEach(r => r.classList.toggle("sl-empty", !chosen.some(s => String(s.group) === r.dataset.group)));
   const sum = chosen.reduce((t, s) => t + total(s), 0), open = chosen.some(s => !hasPrint(s));
   slBar.hidden = !chosen.length;
   document.body.classList.toggle("has-slbar", chosen.length > 0);
@@ -890,6 +909,7 @@ function syncShortlist() {
     else { el.setAttribute("aria-pressed", on ? "true" : "false"); el.textContent = on ? "Shortlisted ✓" : "Add to shortlist"; }
   });
   if (!chosen.length) { tableEl.classList.remove("sl-only"); slBar.querySelector('[data-act="only"]').setAttribute("aria-pressed", "false"); }
+  renderFoot();
 }
 function toggleShort(id, on) {
   const set = new Set(VIEW.shortlist);
@@ -902,7 +922,7 @@ cardEl.addEventListener("click", e => { const b = e.target.closest(".shortlist-b
 slBar.addEventListener("click", async e => {
   const b = e.target.closest("button[data-act]"); if (!b) return;
   if (b.dataset.act === "clear") { VIEW.shortlist = []; saveView(); syncShortlist(); }
-  if (b.dataset.act === "only") { const on = !tableEl.classList.contains("sl-only"); tableEl.classList.toggle("sl-only", on); b.setAttribute("aria-pressed", on ? "true" : "false"); }
+  if (b.dataset.act === "only") { const on = !tableEl.classList.contains("sl-only"); tableEl.classList.toggle("sl-only", on); b.setAttribute("aria-pressed", on ? "true" : "false"); renderFoot(); }
   if (b.dataset.act === "copy") {
     const text = shortlistText();
     try { await navigator.clipboard.writeText(text); }
@@ -920,7 +940,11 @@ function saveFile(name, type, text) {
   document.body.append(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
-const csvCell = v => { const t = v === null || v === undefined ? "" : String(v); return /[",\n]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t; };
+const csvCell = v => {
+  let t = v === null || v === undefined ? "" : String(v);
+  if (typeof v === "string" && /^[=+\-@\t\r]/.test(t)) t = "'" + t;   // Excel would run it as a formula
+  return /[",\r\n]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t;
+};
 document.getElementById("dl-csv").onclick = () => {
   const head = ["#", "Group", "Location", "Media vehicle", "Facing", "Latitude", "Longitude", "Width (ft)", "Height (ft)", "Area (sq ft)", "Illumination",
     "Rate / month", "Printing", "Total", ...(BASE ? [`From ${BASE_LABEL} (km)`] : []), "Shortlisted"];

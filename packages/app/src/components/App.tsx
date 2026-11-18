@@ -63,6 +63,7 @@ export function App() {
   const keepSaved = () => !saved || confirm(`Replace "${saved.file.plan.title || "your plan"}", the plan kept in this browser? Download it first if you want to keep it.`);
 
   const open = async (files: File[]) => {
+    if (!keepSaved()) return;
     setError(undefined);
     try {
       const { ws: opened, warnings } = await openFiles(files);

@@ -173,3 +173,47 @@ test("exports work inside the app's preview", async ({ page }) => {
   const [d] = await Promise.all([page.waitForEvent("download"), f.getByRole("button", { name: "Download CSV" }).click()]);
   expect(d.suggestedFilename()).toBe("billboard-plan.csv");
 });
+
+test("a plan autosaved with cities shows them as City pins in the editor", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => new Promise<void>((done, fail) => {
+    const req = indexedDB.open("keyval-store");
+    req.onupgradeneeded = () => req.result.createObjectStore("keyval");
+    req.onsuccess = () => {
+      const tx = req.result.transaction("keyval", "readwrite");
+      tx.objectStore("keyval").put({ origin: "opened", images: {}, savedAt: Date.now(), file: {
+        plan: { title: "Old plan", groups: [{ id: "a", name: "A", color: "#0f6b3e" }], cities: [{ name: "Gurgaon", coords: "28.4595, 77.0266" }] },
+        sites: [{ id: "1", group: "a", location: "Board", coords: "28.1, 76.6", width_ft: 40, height_ft: 20, rate_per_month: 1000 }]
+      } }, "billboard-planner:workspace");
+      tx.oncomplete = () => done(); tx.onerror = () => fail(tx.error);
+    };
+  }));
+  await page.reload();
+  await page.getByRole("button", { name: "Continue your plan" }).click();
+  await page.getByRole("tab", { name: "Plan details" }).click();
+  const pins = page.locator("fieldset", { hasText: "Pins" });
+  await expect(pins.getByLabel("Pin name")).toHaveValue("Gurgaon");
+  await expect(pins.getByLabel("Type")).toHaveValue("city");
+});
+
+test("Open a plan file from the example asks before replacing a saved plan", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: /Start a new plan/ }).click();
+  await page.getByRole("tab", { name: "Plan details" }).click();
+  await page.getByLabel("Title", { exact: true }).fill("My own plan");
+  await page.waitForTimeout(800);
+  await page.goto("/#example");
+  await expect(page.frameLocator('iframe[title="Plan page preview"]').locator(".pin")).toHaveCount(8);
+  let asked = "";
+  page.once("dialog", d => { asked = d.message(); d.dismiss(); });
+  const yaml = [
+    "plan:",
+    "  groups: [{ id: a, name: A, color: '#0f6b3e' }]",
+    "sites:",
+    "  - { id: 1, group: a, location: X, coords: '28.1, 76.6', width_ft: 1, height_ft: 1, rate_per_month: 1 }"
+  ].join(String.fromCharCode(10));
+  await page.locator('input[type="file"]').first().setInputFiles([{ name: "plan.yaml", mimeType: "text/yaml", buffer: Buffer.from(yaml) }]);
+  await expect.poll(() => asked).toMatch(/replace/i);
+  await page.goto("/");
+  await expect(page.getByText("My own plan")).toBeVisible();
+});

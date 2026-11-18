@@ -223,7 +223,7 @@ test("radius sliders resize the rings, count the sites inside, change centre, re
 test("a viewer's own pin can be the ring centre", async ({ page }) => {
   await addMyPin(page, "Client office");
   await page.getByLabel("Ring centre").selectOption({ label: "My pin: Client office" });
-  const pin = await page.evaluate(() => JSON.parse(localStorage.getItem("bbp:v1:Billboard Plan")!).pins[0]);
+  const pin = await page.evaluate(() => JSON.parse(localStorage.getItem((0, eval)("STATE_KEY"))!).pins[0]);
   expect(await leaflet<number>(page, "ringCircles[0].getLatLng().lat")).toBeCloseTo(pin.lat, 5);
 });
 
@@ -252,7 +252,7 @@ test("shortlist: card button and table checkbox agree; bar totals; WhatsApp text
 });
 
 test("a shortlisted site missing from an updated plan is dropped", async ({ page }) => {
-  await page.evaluate(() => localStorage.setItem("bbp:v1:Billboard Plan", JSON.stringify({ shortlist: ["99", "6"] })));
+  await page.evaluate(() => localStorage.setItem((0, eval)("STATE_KEY"), JSON.stringify({ shortlist: ["99", "6"] })));
   await page.reload();
   await expect(page.locator(".pin")).toHaveCount(8);
   await expect(page.locator(".slbar")).toContainText("1 site · ₹96,000");
@@ -326,4 +326,31 @@ test("print layout hides the map controls, viewer tools and shortlist bar", asyn
     await expect(page.locator(sel).first(), sel).toBeHidden();
   }
   await expect(page.locator("#row-6")).toBeVisible();
+});
+
+test("viewer state is kept per plan, not just per title", async ({ page }) => {
+  await page.getByLabel("Shortlist site 6").check();
+  const keys = await page.evaluate(() => Object.keys(localStorage).filter(k => k.startsWith("bbp:")));
+  expect(keys).toHaveLength(1);
+  expect(keys[0]).toMatch(/^bbp:v1:Billboard Plan:[0-9a-z]+$/);
+});
+
+test("Show shortlist only also switches the totals and hides empty groups", async ({ page }) => {
+  await page.getByLabel("Shortlist site 3").check();
+  await page.getByLabel("Shortlist site 6").check();
+  await page.locator(".slbar").getByRole("button", { name: "Show shortlist only" }).click();
+  await expect(page.locator("tfoot")).toContainText("Shortlist · 2 sites");
+  await expect(page.locator("tfoot")).toContainText("₹1,28,000");
+  await expect(page.locator("tfoot")).not.toContainText("₹4,66,000");
+  await expect(page.locator("tr.group").nth(1)).toBeHidden();
+  await page.locator(".slbar").getByRole("button", { name: "Show shortlist only" }).click();
+  await expect(page.locator("tfoot")).toContainText("₹4,66,000*");
+  await expect(page.locator("tr.group").nth(1)).toBeVisible();
+});
+
+test("CSV cells that look like formulas are kept as text", async ({ page }) => {
+  await page.evaluate(() => { (0, eval)("SITES")[0].location = "=HYPERLINK(\"x\")"; });
+  const { text } = await downloadText(page, "Download CSV");
+  const row1 = text.replace(/^\uFEFF/, "").split(/\r?\n/)[1]!;
+  expect(row1).toContain(`"'=HYPERLINK(""x"")"`);
 });
